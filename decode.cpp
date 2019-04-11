@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <vector>
 
+#include "buffer.hpp"
 #include "codec.hpp"
 #include "huffman.hpp"
 #include "zigzag.hpp"
@@ -19,6 +20,21 @@
 #define EOI 0xD9
 
 
+uint8_t read_MCU_byte(FILE *fp, bool &terminate) {
+    uint8_t res = (uint8_t)fgetc(fp);
+    if (res == 0xFF) {
+        uint8_t nxt = (uint8_t)fgetc(fp);
+        if (nxt != 0xFF) {
+            ungetc(nxt, fp);
+            ungetc(res, fp);
+            terminate = true;;
+            return 0x00;
+        }
+    }
+    return res;
+}
+
+
 int main(int argc, const char **argv) {
     if (argc < 2) {
         fprintf(stderr, "[Usage] ./decode source [destination]\n");
@@ -26,17 +42,24 @@ int main(int argc, const char **argv) {
     }
 
     FILE *fp = fopen(argv[1], "rb");
+    if (!fp) {
+        fprintf(stderr, "[Error] Image to be decoded not found\n");
+        exit(1);
+    }
 
     std::vector<uint8_t> qt(6), fh(6), fv(6), dcid(6), acid(6);
     std::vector<huffman::decoder> dc(4), ac(4);
     size_t ht, wd, itvl;
+    uint8_t hmax = 0, vmax = 0;
 
     bool soi = false;
     bool eoi = false;
 
+    buffer *buf = new buffer(fp);
+
     while (!eoi) {
-        uint8_t byte1 = (uint8_t)fgetc(fp);
-        uint8_t byte2 = (uint8_t)fgetc(fp);
+        uint8_t byte1 = buf->read_byte();
+        uint8_t byte2 = buf->read_byte();
 
         if (byte1 != 0xFF) {
             fprintf(stderr, "[Error] Wrong format, expect 0xFF\n");
@@ -58,16 +81,20 @@ int main(int argc, const char **argv) {
                 }
                 fprintf(stderr, "[Debug] SOF\n");
                 // start of frame (baseline DCT)
-                fgetc(fp), fgetc(fp), fgetc(fp);
-                ht = (size_t)fgetc(fp) << 8 | (size_t)fgetc(fp);
-                wd = (size_t)fgetc(fp) << 8 | (size_t)fgetc(fp);
+                size_t leng = buf->read_bytes<size_t>(2);
+                uint8_t prec = buf->read_bytes<uint8_t>(1);
+                ht = buf->read_bytes<size_t>(2);
+                wd = buf->read_bytes<size_t>(2);
 
                 uint8_t cnt = (uint8_t)fgetc(fp);
                 for (int i = 0; i < (int)cnt; ++i) {
-                    uint8_t cid = (uint8_t)fgetc(fp);
-                    uint8_t fac = (uint8_t)fgetc(fp);
-                    uint8_t hor = fac & 15, ver = fac >> 4 & 15;
-                    uint8_t nqt = (uint8_t)fgetc(fp);
+                    uint8_t cid = buf->read_byte();
+                    uint8_t hor = buf->read_bits<uint8_t>(4);
+                    uint8_t ver = buf->read_bits<uint8_t>(4);
+                    uint8_t nqt = buf->read_byte();
+
+                    hmax = std::max(hmax, hor);
+                    vmax = std::max(vmax, ver);
                     
                     qt[cid] = nqt;
                     fh[cid] = hor;
@@ -84,13 +111,12 @@ int main(int argc, const char **argv) {
                 fprintf(stderr, "[Debug] DHT\n");
                 // TODO: store huffman tables
                 // define huffman tables
-                size_t leng = (size_t)fgetc(fp) << 8 | (size_t)fgetc(fp);
+                size_t leng = buf->read_bytes<size_t>(2);
                 size_t bytes = 2;
                 
                 while (bytes < leng) {
-                    uint8_t tc = (uint8_t)fgetc(fp); // type: 0 for DC and 1 for AC
-                    uint8_t th = tc & 15;
-                    tc = tc >> 4 & 15;
+                    uint8_t tc = buf->read_bits<uint8_t>(4); // type: 0 for DC and 1 for AC
+                    uint8_t th = buf->read_bits<uint8_t>(4);
                     assert(tc < 2);
                     assert(th < 4);
                     bytes++;
@@ -99,13 +125,13 @@ int main(int argc, const char **argv) {
                     std::vector<std::vector<uint8_t>> symbol(16);
 
                     for (int i = 0; i < 16; ++i) 
-                        codeword[i] = (uint8_t)fgetc(fp);
+                        codeword[i] = buf->read_byte();
                     
                     bytes += 16;
                     for (int i = 0; i < 16; ++i) {
                         symbol[i].resize(codeword[i]);
                         for (int j = 0; j < codeword[i]; ++j)
-                            symbol[i][j] = (uint8_t)fgetc(fp);
+                            symbol[i][j] = buf->read_byte();
 
                         bytes += codeword[i];
                     }
@@ -124,13 +150,12 @@ int main(int argc, const char **argv) {
                 fprintf(stderr, "[Debug] DQT\n");
                 // TODO: store quantization tables
                 // define quantization tables
-                size_t leng = (size_t)fgetc(fp) << 8 | (size_t)fgetc(fp);
+                size_t leng = buf->read_bytes<size_t>(2);
                 size_t bytes = 2;
 
                 while (bytes < leng) {
-                    uint8_t pq = (uint8_t)fgetc(fp); // precision of QT
-                    uint8_t tq = pq & 15;
-                    pq = pq >> 4 & 15;
+                    uint8_t pq = buf->read_bits<uint8_t>(4);
+                    uint8_t tq = buf->read_bits<uint8_t>(4);
                     assert(pq < 2);
                     assert(tq < 4);
                     bytes++;
@@ -139,9 +164,7 @@ int main(int argc, const char **argv) {
                     
                     for (int k = 0; k < 64; ++k) {
                         uint8_t i = zig[k], j = zag[k];
-                        qtab[i][j] = fgetc(fp);
-                        if (pq == 1)
-                            qtab[i][j] = qtab[i][j] << 8 | fgetc(fp);
+                        qtab[i][j] = buf->read_bytes<int>(pq + 1);
                         bytes += pq + 1;
                     }
                 }
@@ -155,8 +178,8 @@ int main(int argc, const char **argv) {
                 }
                 fprintf(stderr, "[Debug] DRI\n");
                 // define restart interval
-                fgetc(fp), fgetc(fp);
-                itvl = (size_t)fgetc(fp) << 8 | (size_t)fgetc(fp);
+                buf->skip_bytes(2);
+                itvl = buf->read_bytes<size_t>(2);
                 break;
             }
 
@@ -167,35 +190,39 @@ int main(int argc, const char **argv) {
                 }
                 fprintf(stderr, "[Debug] SOS\n");
                 // start of scan
-                size_t leng = (size_t)fgetc(fp) << 8 | (size_t)fgetc(fp);
-                uint8_t cnt = (uint8_t)fgetc(fp);
+                size_t leng = buf->read_bytes<size_t>(2);
+                uint8_t cnt = buf->read_byte();
+
+                fprintf(stderr, "[Debug] SOS cnt = %d\n", (int)cnt);
+                fprintf(stderr, "Y: %d %d\n", (int)fh[1], (int)fv[1]);
+                fprintf(stderr, "Cb: %d %d\n", (int)fh[2], (int)fv[2]);
+                fprintf(stderr, "Cr: %d %d\n", (int)fh[3], (int)fv[3]);
 
                 for (int i = 0; i < (int)cnt; ++i) {
-                    uint8_t cs = (uint8_t)fgetc(fp);
-                    uint8_t td = (uint8_t)fgetc(fp);
-                    uint8_t ta = td & 15;
-                    td = td >> 4 & 15;
+                    uint8_t cs = buf->read_byte();
+                    uint8_t ta = buf->read_bits<uint8_t>(4);
+                    uint8_t td = buf->read_bits<uint8_t>(4);
 
                     dcid[cs] = td;
                     acid[cs] = ta;
                 }
-                fgetc(fp), fgetc(fp), fgetc(fp);
-                
+
+                buf->skip_bytes(3);
+
                 // TODO: Read MCU
                 while (true) {
                     // TODO: this is WRONG
-                    uint8_t byte = (uint8_t)fgetc(fp);
-                    fprintf(stderr, "[DEBUG] read 0x%hhx after SOS\n", byte);
+                    uint8_t byte = buf->read_byte();
+                    // fprintf(stderr, "[Debug] read 0x%hhx after SOS\n", byte);
                     if (byte == 0xFF) {
-                        uint8_t nxt = (uint8_t)fgetc(fp);
-                        if (nxt == 0x00) {
-                            ungetc(nxt, fp);
-                        } else {
-                            ungetc(nxt,  fp);
-                            ungetc(byte, fp);
+                        uint8_t nxt = buf->read_byte();
+                        if (nxt != 0x00) {
+                            buf->unread(nxt);
+                            buf->unread(byte);
                             break;
                         }
                     }
+
                 }
 
                 break;
@@ -207,29 +234,25 @@ int main(int argc, const char **argv) {
                     exit(1);
                 }
                 fprintf(stderr, "[Debug] APP\n");
-                size_t leng = (size_t)fgetc(fp) << 8 | (size_t)fgetc(fp);
-                uint64_t mark = 0;
-                for (int i = 0; i < 5; ++i)
-                    mark = mark << 8 | fgetc(fp);
+                size_t leng = buf->read_bytes<size_t>(2);
+                uint64_t mark = buf->read_bytes<uint64_t>(5);
                 
                 if (mark != 0x4A46494600) {
                     fprintf(stderr, "[Error] Expect JFIF\n");
                     exit(1);
                 }
 
-                uint16_t version = fgetc(fp) << 8 | fgetc(fp);
-                uint8_t unit = (uint8_t)fgetc(fp);
-                uint16_t x_density = fgetc(fp) << 8 | fgetc(fp);
-                uint16_t y_density = fgetc(fp) << 8 | fgetc(fp);
-                uint8_t width_t  = (uint8_t)fgetc(fp);
-                uint8_t height_t = (uint8_t)fgetc(fp);
+                uint16_t version = buf->read_bytes<uint16_t>(2);
+                uint8_t unit = buf->read_byte();
+                uint16_t x_density = buf->read_bytes<uint16_t>(2);
+                uint16_t y_density = buf->read_bytes<uint16_t>(2);
+                uint8_t width_t  = buf->read_byte();
+                uint8_t height_t = buf->read_byte();
 
                 for (int i = 0; i < (int)width_t; ++i) {
                     for (int j = 0; j < (int)height_t; ++j) {
                         // TODO: make it useful
-                        fgetc(fp);
-                        fgetc(fp);
-                        fgetc(fp);
+                        buf->skip_bytes(3);
                     }
                 }
                 break;
@@ -242,7 +265,11 @@ int main(int argc, const char **argv) {
                 }
                 fprintf(stderr, "[Debug] COM\n");
                 // comment
-                fgetc(fp), fgetc(fp), fgetc(fp);
+                size_t leng = buf->read_bytes<size_t>(2);
+
+                for (int i = 0; i < (int)leng - 2; ++i) 
+                    buf->read_byte();
+
                 break;
             }
 

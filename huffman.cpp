@@ -13,48 +13,44 @@ huffman::decoder::decoder(const std::vector<uint8_t> &codeword,
     }
 }
 
-std::vector<uint8_t> huffman::decoder::operator()(const std::vector<uint8_t> &text) const {
-    size_t ptr = 0;
-    int mask = 0;
-    int8_t leng = 0, bpos = 7;
+// std::vector<uint8_t> huffman::decoder::operator()(const std::vector<uint8_t> &text) {
+    // size_t ptr = 0;
+    // int mask = 0;
+    // int8_t leng = 0, bpos = 7;
 
-    std::vector<uint8_t> res;
-    while (ptr < text.size()) {
-        mask = mask << 1 | (text[ptr] >> bpos & 1);
+    // std::vector<uint8_t> res;
+    // while (!buffer.empty()) {
+        // mask = mask << 1 | (buffer.front() >> bpos & 1);
 
-        if (--bpos < 0) {
-            bpos = 7;
-            ++ptr;
-        }
+        // if (--bpos < 0) {
+            // bpos = 7;
+            // buffer.pop();
+        // }
 
-        auto it = maps.find(std::make_pair(mask, leng));
+        // auto it = maps.find(std::make_pair(mask, leng));
 
-        if (it != maps.end()) {
-            res.push_back(it->second);
-            leng = 0;
-            mask = 0;
-        }
-    }
+        // if (it != maps.end()) {
+            // res.push_back(it->second);
+            // leng = 0;
+            // mask = 0;
+        // }
+    // }
 
-    return res;
-}
+    // return res;
+// }
 
-void huffman::decoder::feed(const std::vector<uint8_t> &text) {
-    buffer = text;
-    ptr_ = 0;
-    bpos_ = 7;
-}
+// void huffman::decoder::feed(const std::vector<uint8_t> &text) {
+    // while (!buffer.empty()) buffer.pop();
+    // for (int i = 0; i < (int)text.size(); ++i) 
+        // buffer.push(text[i]);
+    // bpos_ = 7;
+// }
 
-uint8_t huffman::decoder::next() {
+uint8_t huffman::decoder::next(buffer *buf) {
     int mask = 0;
     uint8_t leng = 0;
-    while (ptr_ < buffer.size()) {
-        mask = mask << 1 | (buffer[ptr_] >> bpos_ & 1);
-
-        if (--bpos_ < 0) {
-            bpos_ = 7;
-            ++ptr_;
-        }
+    while (true) {
+        mask = mask << 1 | buf->read_bits(1);
         auto it = maps.find(std::make_pair(mask, leng));
 
         if (it != maps.end()) 
@@ -64,22 +60,22 @@ uint8_t huffman::decoder::next() {
     exit(1);
 }
 
-uint16_t huffman::decoder::read_bits(uint8_t s) {
-    uint16_t res = 0;
-    for (int i = 0; i < (int)s; ++i) {
-        if (ptr_ == buffer.size()) {
-            fprintf(stderr, "[Error] Huffman decoder insufficient buffer\n");
-            exit(1);
-        }
-        res = (uint16_t)(res << 1 | (buffer[ptr_] >> bpos_ & 1));
-        if (--bpos_ < 0) {
-            bpos_ = 7;
-            ++ptr_;
-        }
-    }
-    return res;
-}
+// uint16_t huffman::decoder::read_bits(uint8_t s) {
+    // uint16_t res = 0;
+    // for (int i = 0; i < (int)s; ++i) {
+        // if (buffer.empty()) {
+            // fprintf(stderr, "[Error] Huffman decoder insufficient buffer\n");
+            // exit(1);
+        // }
+        // res = (uint16_t)(res << 1 | (buffer.front() >> bpos_ & 1));
+        // if (--bpos_ < 0) {
+            // bpos_ = 7;
+            // buffer.pop();
+        // }
+    // }
+    // return res;
+// }
 
-bool huffman::decoder::empty() const {
-    return ptr_ == buffer.size();
-}
+// bool huffman::decoder::empty() const {
+    // return buffer.empty();
+// }

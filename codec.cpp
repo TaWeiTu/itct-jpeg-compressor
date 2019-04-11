@@ -1,50 +1,50 @@
 #include "codec.hpp"
 
 
-std::vector<std::vector<int16_t>> RLC::decode(const std::vector<uint8_t> &code, 
-                                        huffman::decoder *huf) {
-    huf->feed(code);
+// std::vector<std::vector<int16_t>> RLC::decode(const std::vector<uint8_t> &code, 
+                                        // huffman::decoder *huf) {
+    // huf->feed(code);
 
-    std::vector<std::vector<int16_t>> res(8, std::vector<int16_t>(8));
-    size_t ptr = 1;
-    while (!huf->empty()) {
-        uint8_t ret = huf->next();
-        if (!ret) {
-            while (ptr < 64) {
-                res[zig[ptr]][zag[ptr]] = 0;
-                ++ptr;
-            }
-            break;
-        }
-        uint8_t r = ret >> 4 & 15;
-        uint8_t s = ret & 15;
-        uint16_t offset = huf->read_bits(s);
-        int16_t var = (int16_t)(offset >= (1 << (s - 1)) ? offset : -((1 << s) - offset - 1));
+    // std::vector<std::vector<int16_t>> res(8, std::vector<int16_t>(8));
+    // size_t ptr = 1;
+    // while (!huf->empty()) {
+        // uint8_t ret = huf->next();
+        // if (!ret) {
+            // while (ptr < 64) {
+                // res[zig[ptr]][zag[ptr]] = 0;
+                // ++ptr;
+            // }
+            // break;
+        // }
+        // uint8_t r = ret >> 4 & 15;
+        // uint8_t s = ret & 15;
+        // uint16_t offset = huf->read_bits(s);
+        // int16_t var = (int16_t)(offset >= (1 << (s - 1)) ? offset : -((1 << s) - offset - 1));
 
-        for (int i = 0; i < (int)r; ++i) {
-            res[zig[ptr]][zag[ptr]] = 0;
-            ++ptr;
-        }
-        res[zig[ptr]][zag[ptr]] = var;
-        ++ptr;
-    }
-    return res;
-}
+        // for (int i = 0; i < (int)r; ++i) {
+            // res[zig[ptr]][zag[ptr]] = 0;
+            // ++ptr;
+        // }
+        // res[zig[ptr]][zag[ptr]] = var;
+        // ++ptr;
+    // }
+    // return res;
+// }
 
-std::vector<int16_t> DPCM::decode(const std::vector<uint8_t> &code,
-                                 huffman::decoder *huf) {
-    huf->feed(code);
-    std::vector<int16_t> res;
+// std::vector<int16_t> DPCM::decode(const std::vector<uint8_t> &code,
+                                 // huffman::decoder *huf) {
+    // huf->feed(code);
+    // std::vector<int16_t> res;
 
-    while (!huf->empty()) {
-        uint8_t r = huf->next();
-        uint16_t offset = huf->read_bits(r);
-        int16_t diff = r == 0 ? 0 : (int16_t)(offset >= (1 << (r - 1)) ? offset : -((1 << r) - offset - 1));
+    // while (!huf->empty()) {
+        // uint8_t r = huf->next();
+        // uint16_t offset = huf->read_bits(r);
+        // int16_t diff = r == 0 ? 0 : (int16_t)(offset >= (1 << (r - 1)) ? offset : -((1 << r) - offset - 1));
 
-        res.push_back(res.empty() ? diff : (int16_t)(diff + res.back()));
-    }
-    return res;
-}
+        // res.push_back(res.empty() ? diff : (int16_t)(diff + res.back()));
+    // }
+    // return res;
+// }
 
 quantizer::quantizer() {}
 

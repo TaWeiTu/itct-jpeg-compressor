@@ -12,7 +12,7 @@
 
 namespace RLC {
     std::vector<std::vector<int16_t>> decode(const std::vector<uint8_t> &,
-                                            huffman::decoder *);
+                                             huffman::decoder *);
 
 }
 

@@ -3,7 +3,7 @@ CFLAGS = -Wall -Wextra -Wconversion -O3 -std=c++14
 
 all: decode
 
-decode: decode.cpp huffman.o codec.o
+decode: decode.cpp codec.o huffman.o
 	$(CXX) $(CFLAGS) huffman.o decode.cpp -o decode
 
 %: %.cpp
