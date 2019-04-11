@@ -31,6 +31,7 @@ int main(int argc, const char **argv) {
     std::vector<huffman::decoder> dc(4), ac(4);
     size_t ht, wd, itvl;
 
+    bool soi = false;
     bool eoi = false;
 
     while (!eoi) {
@@ -44,11 +45,18 @@ int main(int argc, const char **argv) {
 
         switch (byte2) {
             case SOI: {
+                fprintf(stderr, "[Debug] SOI\n");
                 // start of image
+                soi = true;
                 break;
             }
 
             case SOF: {
+                if (!soi) {
+                    fprintf(stderr, "[Error] SOI not found\n");
+                    exit(1);
+                }
+                fprintf(stderr, "[Debug] SOF\n");
                 // start of frame (baseline DCT)
                 fgetc(fp), fgetc(fp), fgetc(fp);
                 ht = (size_t)fgetc(fp) << 8 | (size_t)fgetc(fp);
@@ -69,6 +77,11 @@ int main(int argc, const char **argv) {
             }
 
             case DHT: {
+                if (!soi) {
+                    fprintf(stderr, "[Error] SOI not found\n");
+                    exit(1);
+                }
+                fprintf(stderr, "[Debug] DHT\n");
                 // TODO: store huffman tables
                 // define huffman tables
                 size_t leng = (size_t)fgetc(fp) << 8 | (size_t)fgetc(fp);
@@ -104,6 +117,11 @@ int main(int argc, const char **argv) {
             }
 
             case DQT: {
+                if (!soi) {
+                    fprintf(stderr, "[Error] SOI not found\n");
+                    exit(1);
+                }
+                fprintf(stderr, "[Debug] DQT\n");
                 // TODO: store quantization tables
                 // define quantization tables
                 size_t leng = (size_t)fgetc(fp) << 8 | (size_t)fgetc(fp);
@@ -131,6 +149,11 @@ int main(int argc, const char **argv) {
             }
 
             case DRI: {
+                if (!soi) {
+                    fprintf(stderr, "[Error] SOI not found\n");
+                    exit(1);
+                }
+                fprintf(stderr, "[Debug] DRI\n");
                 // define restart interval
                 fgetc(fp), fgetc(fp);
                 itvl = (size_t)fgetc(fp) << 8 | (size_t)fgetc(fp);
@@ -138,6 +161,11 @@ int main(int argc, const char **argv) {
             }
 
             case SOS: {
+                if (!soi) {
+                    fprintf(stderr, "[Error] SOI not found\n");
+                    exit(1);
+                }
+                fprintf(stderr, "[Debug] SOS\n");
                 // start of scan
                 size_t leng = (size_t)fgetc(fp) << 8 | (size_t)fgetc(fp);
                 uint8_t cnt = (uint8_t)fgetc(fp);
@@ -154,32 +182,88 @@ int main(int argc, const char **argv) {
                 fgetc(fp), fgetc(fp), fgetc(fp);
                 
                 // TODO: Read MCU
+                while (true) {
+                    // TODO: this is WRONG
+                    uint8_t byte = (uint8_t)fgetc(fp);
+                    fprintf(stderr, "[DEBUG] read 0x%hhx after SOS\n", byte);
+                    if (byte == 0xFF) {
+                        uint8_t nxt = (uint8_t)fgetc(fp);
+                        if (nxt == 0x00) {
+                            ungetc(nxt, fp);
+                        } else {
+                            ungetc(nxt,  fp);
+                            ungetc(byte, fp);
+                            break;
+                        }
+                    }
+                }
 
                 break;
             }
 
             case APP: {
-                // APP0
+                if (!soi) {
+                    fprintf(stderr, "[Error] SOI not found\n");
+                    exit(1);
+                }
+                fprintf(stderr, "[Debug] APP\n");
+                size_t leng = (size_t)fgetc(fp) << 8 | (size_t)fgetc(fp);
+                uint64_t mark = 0;
+                for (int i = 0; i < 5; ++i)
+                    mark = mark << 8 | fgetc(fp);
+                
+                if (mark != 0x4A46494600) {
+                    fprintf(stderr, "[Error] Expect JFIF\n");
+                    exit(1);
+                }
+
+                uint16_t version = fgetc(fp) << 8 | fgetc(fp);
+                uint8_t unit = (uint8_t)fgetc(fp);
+                uint16_t x_density = fgetc(fp) << 8 | fgetc(fp);
+                uint16_t y_density = fgetc(fp) << 8 | fgetc(fp);
+                uint8_t width_t  = (uint8_t)fgetc(fp);
+                uint8_t height_t = (uint8_t)fgetc(fp);
+
+                for (int i = 0; i < (int)width_t; ++i) {
+                    for (int j = 0; j < (int)height_t; ++j) {
+                        // TODO: make it useful
+                        fgetc(fp);
+                        fgetc(fp);
+                        fgetc(fp);
+                    }
+                }
                 break;
             }
 
             case COM: {
+                if (!soi) {
+                    fprintf(stderr, "[Error] SOI not found\n");
+                    exit(1);
+                }
+                fprintf(stderr, "[Debug] COM\n");
                 // comment
                 fgetc(fp), fgetc(fp), fgetc(fp);
                 break;
             }
 
             case EOI: {
+                if (!soi) {
+                    fprintf(stderr, "[Error] SOI not found\n");
+                    exit(1);
+                }
+                fprintf(stderr, "[Debug] EOI\n");
                 // end of image
                 eoi = true;
                 break;
             }
 
             default:
-                fprintf(stderr, "[Error] Wrong format, unexpected byte\n");
+                fprintf(stderr, "[Error] Wrong format, unexpected byte 0x%hhx\n", byte2);
                 exit(1);
         }
     }
+
+    fclose(fp);
 
     return 0;
 }

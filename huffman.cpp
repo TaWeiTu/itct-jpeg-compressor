@@ -16,7 +16,7 @@ huffman::decoder::decoder(const std::vector<uint8_t> &codeword,
 std::vector<uint8_t> huffman::decoder::operator()(const std::vector<uint8_t> &text) const {
     size_t ptr = 0;
     int mask = 0;
-    uint8_t leng = 0, bpos = 7;
+    int8_t leng = 0, bpos = 7;
 
     std::vector<uint8_t> res;
     while (ptr < text.size()) {
@@ -71,7 +71,7 @@ uint16_t huffman::decoder::read_bits(uint8_t s) {
             fprintf(stderr, "[Error] Huffman decoder insufficient buffer\n");
             exit(1);
         }
-        res = res << 1 | (buffer[ptr_] >> bpos_ & 1);
+        res = (uint16_t)(res << 1 | (buffer[ptr_] >> bpos_ & 1));
         if (--bpos_ < 0) {
             bpos_ = 7;
             ++ptr_;

@@ -1,7 +1,7 @@
 #include "codec.hpp"
 
 
-std::vector<std::vector<int16_t>> RLE::decode(const std::vector<uint8_t> &code, 
+std::vector<std::vector<int16_t>> RLC::decode(const std::vector<uint8_t> &code, 
                                         huffman::decoder *huf) {
     huf->feed(code);
 
@@ -101,10 +101,10 @@ void IDCT(std::vector<std::vector<int16_t>> &x) {
         for (int j = 0; j < n; ++j) {
             for (int a = 0; a < n; ++a) {
                 for (int b = 0; b < n; ++b) {
-                    double p = cos((2 * a + 1) * i * pi / (2 * n));
-                    double q = cos((2 * b + 1) * j * pi / (2 * n));
+                    double p = cos((2 * i + 1) * a * pi / (2 * n));
+                    double q = cos((2 * j + 1) * b * pi / (2 * n));
                     double z = (a == 0 ? 1. / sqrt(2) : 1.) * (b == 0 ? 1. / sqrt(2) : 1.);
-                    y[i][j] += z * x[i][j] * p * q;
+                    y[i][j] += z * x[a][b] * p * q;
                 }
             }
 

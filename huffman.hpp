@@ -14,7 +14,7 @@ namespace huffman {
         std::map<std::pair<int, uint8_t>, uint8_t> maps;
         std::vector<uint8_t> buffer;
         size_t ptr_;
-        uint8_t bpos_;
+        int8_t bpos_;
 
         decoder() {}
 
