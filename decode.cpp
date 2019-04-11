@@ -4,31 +4,24 @@
 #include <cstdlib>
 #include <vector>
 
+#include "codec.hpp"
 #include "huffman.hpp"
+#include "zigzag.hpp"
 
-
-const uint8_t zig[64] = {0, 0, 1, 2, 1, 0, 0, 1, 
-                         2, 3, 4, 3, 2, 1, 0, 0, 
-                         1, 2, 3, 4, 5, 6, 5, 4, 
-                         3, 2, 1, 0, 0, 1, 2, 3, 
-                         4, 5, 6, 7, 7, 6, 5, 4, 
-                         3, 2, 1, 2, 3, 4, 5, 6, 
-                         7, 7, 6, 5, 4, 3, 4, 5, 
-                         6, 7, 7, 6, 5, 6, 7, 7};
-
-const uint8_t zag[64] = {0, 1, 0, 0, 1, 2, 3, 2, 
-                         1, 0, 0, 1, 2, 3, 4, 5, 
-                         4, 3, 2, 1, 0, 0, 1, 2, 
-                         3, 4, 5, 6, 7, 6, 5, 4, 
-                         3, 2, 1, 0, 1, 2, 3, 4, 
-                         5, 6, 7, 7, 6, 5, 4, 3, 
-                         2, 3, 4, 5, 6, 7, 7, 6, 
-                         5, 4, 5, 6, 7, 7, 6, 7};
+#define SOI 0xD8
+#define SOF 0xC0
+#define DHT 0xC4
+#define DQT 0xDB
+#define DRI 0xDD
+#define SOS 0xDA
+#define APP 0xE0
+#define COM 0xFE
+#define EOI 0xD9
 
 
 int main(int argc, const char **argv) {
-    if (argc != 2) {
-        fprintf(stderr, "[Usage] ./decode filename\n");
+    if (argc < 2) {
+        fprintf(stderr, "[Usage] ./decode source [destination]\n");
         exit(1);
     }
 
@@ -50,12 +43,12 @@ int main(int argc, const char **argv) {
         }
 
         switch (byte2) {
-            case 0xD8: {
+            case SOI: {
                 // start of image
                 break;
             }
 
-            case 0xC0: {
+            case SOF: {
                 // start of frame (baseline DCT)
                 fgetc(fp), fgetc(fp), fgetc(fp);
                 ht = (size_t)fgetc(fp) << 8 | (size_t)fgetc(fp);
@@ -75,14 +68,9 @@ int main(int argc, const char **argv) {
                 break;
             }
 
-            case 0xC2: {
-                // start of frame (progressive DCT)
-                break;
-            }
-
-            case 0xC4: {
+            case DHT: {
                 // TODO: store huffman tables
-                // define huffman tables (DHT)
+                // define huffman tables
                 size_t leng = (size_t)fgetc(fp) << 8 | (size_t)fgetc(fp);
                 size_t bytes = 2;
                 
@@ -115,9 +103,9 @@ int main(int argc, const char **argv) {
                 break;
             }
 
-            case 0xDB: {
+            case DQT: {
                 // TODO: store quantization tables
-                // define quantization tables (DQT)
+                // define quantization tables
                 size_t leng = (size_t)fgetc(fp) << 8 | (size_t)fgetc(fp);
                 size_t bytes = 2;
 
@@ -142,14 +130,14 @@ int main(int argc, const char **argv) {
                 break;
             }
 
-            case 0xDD: {
+            case DRI: {
                 // define restart interval
                 fgetc(fp), fgetc(fp);
                 itvl = (size_t)fgetc(fp) << 8 | (size_t)fgetc(fp);
                 break;
             }
 
-            case 0xDA: {
+            case SOS: {
                 // start of scan
                 size_t leng = (size_t)fgetc(fp) << 8 | (size_t)fgetc(fp);
                 uint8_t cnt = (uint8_t)fgetc(fp);
@@ -170,13 +158,18 @@ int main(int argc, const char **argv) {
                 break;
             }
 
-            case 0xFE: {
+            case APP: {
+                // APP0
+                break;
+            }
+
+            case COM: {
                 // comment
                 fgetc(fp), fgetc(fp), fgetc(fp);
                 break;
             }
 
-            case 0xD9: {
+            case EOI: {
                 // end of image
                 eoi = true;
                 break;
