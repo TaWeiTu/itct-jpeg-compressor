@@ -4,6 +4,7 @@
 #include <cassert>
 #include <cmath>
 #include <cstdint>
+#include <complex>
 #include <utility>
 #include <vector>
 
@@ -30,19 +31,11 @@ struct quantizer {
     void dequantize(std::vector<std::vector<int16_t>> &);
 };
 
-struct cplx {
-    double re, im;
-    cplx();
-    cplx(double, double);
-    cplx operator+(const cplx&) const;
-    cplx operator-(const cplx&) const;
-    cplx operator*(const cplx&) const;
-    cplx conj() const;
-};
-
-void FFT(std::vector<cplx> &, int);
-void IDCT_fast_1D(std::vector<int16_t> &);
-void IDCT_fast_2D(std::vector<std::vector<int16_t>> &);
+// void FFT(std::vector<std::complex<double>> &, int);
+// void IDCT_fast_1D(std::vector<int16_t> &);
+// void IDCT_fast_2D(std::vector<std::vector<int16_t>> &);
+// void FDCT_naive_1D(std::vector<int16_t> &);
+// void FDCT_naive_2D(std::vector<std::vector<int16_t>> &);
 void FDCT(std::vector<std::vector<int16_t>> &);
 void IDCT(std::vector<std::vector<int16_t>> &);
 

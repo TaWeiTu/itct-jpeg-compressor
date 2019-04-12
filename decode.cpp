@@ -21,21 +21,6 @@
 #define EOI 0xD9
 
 
-uint8_t read_MCU_byte(FILE *fp, bool &terminate) {
-    uint8_t res = (uint8_t)fgetc(fp);
-    if (res == 0xFF) {
-        uint8_t nxt = (uint8_t)fgetc(fp);
-        if (nxt != 0xFF) {
-            ungetc(nxt, fp);
-            ungetc(res, fp);
-            terminate = true;;
-            return 0x00;
-        }
-    }
-    return res;
-}
-
-
 int main(int argc, const char **argv) {
     if (argc < 2) {
         fprintf(stderr, "[Usage] ./decode source [destination]\n");
@@ -62,9 +47,6 @@ int main(int argc, const char **argv) {
         uint8_t byte1 = buf->read_byte();
         uint8_t byte2 = buf->read_byte();
 
-        fprintf(stderr, "byte1 = 0x%hhx\n", byte1);
-        fprintf(stderr, "byte2 = 0x%hhx\n", byte2);
-
         if (byte1 != 0xFF) {
             fprintf(stderr, "[Error] Wrong format, expect 0xFF\n");
             exit(1);
@@ -85,17 +67,24 @@ int main(int argc, const char **argv) {
                 }
                 fprintf(stderr, "[Debug] SOF\n");
                 // start of frame (baseline DCT)
+                size_t byte = 0;
                 size_t leng = buf->read_bytes<size_t>(2);
+                byte += 2;
                 uint8_t prec = buf->read_bytes<uint8_t>(1);
+                byte += 1;
                 ht = buf->read_bytes<size_t>(2);
                 wd = buf->read_bytes<size_t>(2);
+                byte += 4;
 
                 uint8_t cnt = (uint8_t)buf->read_byte();
+                byte += 1;
                 for (int i = 0; i < (int)cnt; ++i) {
                     uint8_t cid = buf->read_byte();
                     uint8_t hor = buf->read_bits<uint8_t>(4);
                     uint8_t ver = buf->read_bits<uint8_t>(4);
                     uint8_t nqt = buf->read_byte();
+
+                    byte += 3;
 
                     hmax = std::max(hmax, hor);
                     vmax = std::max(vmax, ver);
@@ -104,6 +93,7 @@ int main(int argc, const char **argv) {
                     fh[cid] = hor;
                     fv[cid] = ver;
                 }
+                assert(byte == leng);
                 break;
             }
 
@@ -139,6 +129,14 @@ int main(int argc, const char **argv) {
 
                         bytes += codeword[i];
                     }
+
+                    // for (int i = 0; i < 16; ++i) {
+                        // fprintf(stderr, "codeword[%d] = %d -> ", i, (int)codeword[i]);
+                        // for (int j = 0; j < (int)symbol[i].size(); ++j)
+                            // fprintf(stderr, "%d ", (int)symbol[i][j]);
+
+                        // fprintf(stderr, "\n");
+                    // }
 
                     if (tc) ac[th] = huffman::decoder(codeword, symbol);
                     else    dc[th] = huffman::decoder(codeword, symbol);
@@ -204,11 +202,12 @@ int main(int argc, const char **argv) {
 
                 for (int i = 0; i < (int)cnt; ++i) {
                     uint8_t cs = buf->read_byte();
-                    uint8_t ta = buf->read_bits<uint8_t>(4);
                     uint8_t td = buf->read_bits<uint8_t>(4);
+                    uint8_t ta = buf->read_bits<uint8_t>(4);
 
                     dcid[cs] = td;
                     acid[cs] = ta;
+                    fprintf(stderr, "color = %d dc = %d ac = %d\n", (int)cs, (int)td, (int)ta);
                 }
 
                 buf->skip_bytes(3);
@@ -224,31 +223,34 @@ int main(int argc, const char **argv) {
 
 
                 // TODO: Read MCU
+                buf->start_read_mcu();
                 size_t cnt_ = 0;
-                while (buf->read_mcu()) {
-                    /* ++cnt_;
+                while (cnt_ < fq) {
+                    ++cnt_;
                     for (int c = 1; c <= 3; ++c) {
                         for (int i = 0; i < (int)fv[c]; ++i) {
                             for (int j = 0; j < (int)fh[c]; ++j) {
                                 int16_t diff = DPCM::decode(&dc[dcid[c]], buf);
                                 std::vector<std::vector<int16_t>> block = RLC::decode_block(&ac[acid[c]], buf);
-                                fprintf(stderr, "cnt = %d\n", (int)cnt_);
-                                fprintf(stderr, "diff = %d\n", (int)diff);
-                                for (int a = 0; a < 8; ++a) {
-                                    for (int b = 0; b < 8; ++b)
-                                        fprintf(stderr, "%d ", (int)block[a][b]);
+                                // fprintf(stderr, "cnt = %d\n", (int)cnt_);
+                                // fprintf(stderr, "diff = %d\n", (int)diff);
+                                // for (int a = 0; a < 8; ++a) {
+                                    // for (int b = 0; b < 8; ++b)
+                                        // fprintf(stderr, "%d ", (int)block[a][b]);
 
-                                    fprintf(stderr, "\n");
-                                }
-                                // usleep(500000);
+                                    // fprintf(stderr, "\n");
+                                // }
+                                // usleep(50000);
                             }
                         }
-                    } */
-                    buf->read_byte();
+                    }
                 }
+
+                buf->clear();
 
                 fprintf(stderr, "fpos = %d flen = %d\n", (int)buf->fpos, (int)buf->flen);
                 fprintf(stderr, "done reading MCU\n");
+
                 break;
             }
 

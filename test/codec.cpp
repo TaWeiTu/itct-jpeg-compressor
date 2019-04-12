@@ -23,7 +23,7 @@ int main() {
     }
 
     FDCT(v);
-    FDCT(w);
+    FDCT_naive_2D(w);
 
     printf("FDCT: \n");
     for (int i = 0; i < 8; ++i) {
@@ -32,18 +32,17 @@ int main() {
         printf("\n");
     }
 
+    printf("FDCT: \n");
+    for (int i = 0; i < 8; ++i) {
+        for (int j = 0; j < 8; ++j)
+            printf("%" PRId16 " ", w[i][j]);
+        printf("\n");
+    }
     printf("IDCT: \n");
     IDCT(v);
     for (int i = 0; i < 8; ++i) {
         for (int j = 0; j < 8; ++j)
             printf("%" PRId16 " ", v[i][j]);
-        printf("\n");
-    }
-    printf("IDCT fast: \n");
-    IDCT_fast_2D(w);
-    for (int i = 0; i < 8; ++i) {
-        for (int j = 0; j < 8; ++j)
-            printf("%" PRId16 " ", w[i][j]);
         printf("\n");
     }
 }

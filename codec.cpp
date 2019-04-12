@@ -4,16 +4,17 @@
 
 std::pair<uint8_t, int16_t> RLC::decode_pixel(huffman::decoder *huf, buffer *buf) {
     uint8_t res = huf->next(buf);
-    fprintf(stderr, "[RLC::decode_pixel] res = %d\n", (int)res);
+    // fprintf(stderr, "[RLC::decode_pixel] res = %d\n", (int)res);
     if (!res)
         return std::make_pair(0, 0);
 
     uint8_t r = res >> 4 & 15;
     uint8_t s = res & 15;
-    fprintf(stderr, "[RLC::decode_pixel] r = %d s = %d\n", (int)r, (int)s);
 
     uint16_t offset = buf->read_bits<uint16_t>(s);
     int16_t var = (int16_t)(offset >= (1 << (s - 1)) ? offset : -((1 << s) - offset - 1));
+
+    // fprintf(stderr, "[RLC::decode_pixel] s = %d offset = %d -> var = %d\n", (int)s, (int)offset, (int)var);
 
     return std::make_pair(r, var);
 }
@@ -22,7 +23,7 @@ std::vector<std::vector<int16_t>> RLC::decode_block(huffman::decoder *huf, buffe
     std::vector<std::vector<int16_t>> res(8, std::vector<int16_t>(8, 0));
 
     size_t ptr = 1;
-    while (true) {
+    while (ptr < 64) {
         std::pair<uint8_t, int16_t> RLP = decode_pixel(huf, buf);
         if (RLP == std::make_pair((uint8_t)0, (int16_t)0))
             break;
@@ -51,6 +52,7 @@ int16_t DPCM::decode(huffman::decoder *huf, buffer *buf) {
 
     uint16_t offset = buf->read_bits<uint16_t>(res);
     int16_t diff = (int16_t)(offset >= (1 << (res - 1)) ? offset : -((1 << res) - offset - 1));
+    // fprintf(stderr, "[DPCM::decode] res = %d offset = %d -> diff = %d\n", (int)res, (int)offset, (int)diff);
 
     return diff;
 }
@@ -122,33 +124,13 @@ void quantizer::dequantize(std::vector<std::vector<int16_t>> &tab) {
     }
 }
 
-cplx::cplx(): re(0), im(0) {}
-    
-cplx::cplx(double r, double i): re(r), im(i) {}
-
-cplx cplx::operator+(const cplx &rhs) const { 
-    return cplx(re + rhs.re, im + rhs.im); 
-}
-
-cplx cplx::operator-(const cplx &rhs) const { 
-    return cplx(re - rhs.re, im - rhs.im); 
-}
-
-cplx cplx::operator*(const cplx &rhs) const { 
-    return cplx(re * rhs.re - im * rhs.im, re * rhs.im + im * rhs.re); 
-}
-
-cplx cplx::conj() const { 
-    return cplx(re, -im); 
-}
-
-void FFT(std::vector<cplx> &v, int n) {
-    static const int maxn = 8;
-    static cplx omega[maxn + 1];
+/* void FFT(std::vector<std::complex<double>> &v, int n) {
+    static const int maxn = 16;
+    static std::complex<double> omega[maxn + 1];
     static const double pi = acos(-1);
 
     for (int i = 0; i <= maxn; ++i)
-        omega[i] = cplx(cos(2 * pi * i / maxn), sin(2 * pi * i / maxn));
+        omega[i] = std::complex<double>(cos(2 * pi * i / maxn), sin(2 * pi * i / maxn));
 
     int z = __builtin_ctz(n) - 1;
     for (int i = 0; i < n; ++i) {
@@ -162,40 +144,82 @@ void FFT(std::vector<cplx> &v, int n) {
         int z = s >> 1;
         for (int i = 0; i < n; i += s) {
             for (int k = 0; k < z; ++k) {
-                cplx x = v[i + z + k] * omega[maxn / s * k];
+                std::complex<double> x = v[i + z + k] * omega[maxn / s * k];
                 v[i + z + k] = v[i + k] - x;
                 v[i + k] = v[i + k] + x;
             }
         }
     }
-}
+} */
 
-void IDCT_fast_1D(std::vector<int16_t> &x) {
+// void IDCT_fast_1D(std::vector<int16_t> &x) {
+    // static const double pi = acos(-1);
+    // std::vector<cplx> fft(16);
+    // for (int i = 0; i < 8; ++i) fft[i] = cplx(x[i], 0);
+
+    // FFT(fft, 16);
+
+    // for (int i = 0; i < 8; ++i) {
+        // double coef = 4 / (i == 0 ? 1. / sqrt(2) : 1) * cos(pi * i  / 16);
+        // x[i] = (int16_t)(fft[i].re / coef);
+    // }
+// }
+
+// void IDCT_fast_2D(std::vector<std::vector<int16_t>> &x) {
+    // for (int i = 0; i < 8; ++i) {
+        // IDCT_fast_1D(x[i]);
+    // }
+
+    // for (int i = 0; i < 8; ++i) {
+        // std::vector<int16_t> col(8);
+        // for (int j = 0; j < 8; ++j) col[j] = x[j][i];
+
+        // IDCT_fast_1D(col);
+        // for (int j = 0; j < 8; ++j) x[j][i] = col[j];
+    // }
+// }
+
+/* void FDCT_naive_1D(std::vector<int16_t> &x) {
     static const double pi = acos(-1);
-    std::vector<cplx> fft(16);
-    for (int i = 0; i < 8; ++i) fft[i] = cplx(x[i], 0);
+    static const std::complex<double> I(0, 1);
 
-    FFT(fft, 16);
+    // std::vector<double> y(8, 0);
+    // for (int i = 0; i < 8; ++i) {
+        // for (int j = 0; j < 8; ++j) {
+            // y[i] += x[j] * cos((2 * j + 1) * i * pi / 16);
+        // }
+        // y[i] *= (i == 0 ? 1. / sqrt(2) : 1) / 2;
+    // }
+    // for (int i = 0; i < 8; ++i) x[i] = (int16_t)y[i];
 
+    std::vector<std::complex<double>> y(16);
+    for (int i = 0; i < 8; ++i) y[i] = std::complex<double>(x[i], 0);
+    FFT(y, 16);
+    for (int i = 0; i < 16; ++i) 
+        y[i] = std::complex<double>(y[i].real(), -y[i].imag());
+    for (int i = 0; i < 16; ++i) fprintf(stderr, "(%.5lf, %.5lf) ", y[i].real(), y[i].imag());
+
+    const std::complex<double> fact = -I * pi / 16.;
+    fprintf(stderr, "\n");
     for (int i = 0; i < 8; ++i) {
-        double coef = 4 / (i == 0 ? 1. / sqrt(2) : 1) * cos(pi * i  / 16);
-        x[i] = (int16_t)(fft[i].re / coef);
+        double coef = 4 / (i == 0 ? 1. / sqrt(2) : 1) * cos(pi * i / 16);
+        // y[i] *= exp(fact * (double)i);
+        x[i] = (int16_t)(y[i].real() / coef);
     }
-}
+} */
 
-void IDCT_fast_2D(std::vector<std::vector<int16_t>> &x) {
+/* void FDCT_naive_2D(std::vector<std::vector<int16_t>> &x) {
     for (int i = 0; i < 8; ++i) {
-        IDCT_fast_1D(x[i]);
+        FDCT_naive_1D(x[i]); 
     }
-
     for (int i = 0; i < 8; ++i) {
-        std::vector<int16_t> col(8);
-        for (int j = 0; j < 8; ++j) col[j] = x[j][i];
+        std::vector<int16_t> y(8);
+        for (int j = 0; j < 8; ++j) y[j] = x[j][i];
 
-        IDCT_fast_1D(col);
-        for (int j = 0; j < 8; ++j) x[j][i] = col[j];
+        FDCT_naive_1D(y);
+        for (int j = 0; j < 8; ++j) x[j][i] = y[j];
     }
-}
+} */
 
 void FDCT(std::vector<std::vector<int16_t>> &x) {
     static const double pi = acos(-1);
