@@ -4,7 +4,6 @@
 
 std::pair<uint8_t, int16_t> RLC::decode_pixel(huffman::decoder *huf, buffer *buf) {
     uint8_t res = huf->next(buf);
-    // fprintf(stderr, "[RLC::decode_pixel] res = %d\n", (int)res);
     if (!res)
         return std::make_pair(0, 0);
 
@@ -13,8 +12,6 @@ std::pair<uint8_t, int16_t> RLC::decode_pixel(huffman::decoder *huf, buffer *buf
 
     uint16_t offset = buf->read_bits<uint16_t>(s);
     int16_t var = (int16_t)(offset >= (1 << (s - 1)) ? offset : -((1 << s) - offset - 1));
-
-    // fprintf(stderr, "[RLC::decode_pixel] s = %d offset = %d -> var = %d\n", (int)s, (int)offset, (int)var);
 
     return std::make_pair(r, var);
 }
@@ -52,59 +49,13 @@ int16_t DPCM::decode(huffman::decoder *huf, buffer *buf) {
 
     uint16_t offset = buf->read_bits<uint16_t>(res);
     int16_t diff = (int16_t)(offset >= (1 << (res - 1)) ? offset : -((1 << res) - offset - 1));
-    // fprintf(stderr, "[DPCM::decode] res = %d offset = %d -> diff = %d\n", (int)res, (int)offset, (int)diff);
 
     return diff;
 }
 
-// std::vector<std::vector<int16_t>> RLC::decode(const std::vector<uint8_t> &code, 
-                                        // huffman::decoder *huf) {
-    // huf->feed(code);
-
-    // std::vector<std::vector<int16_t>> res(8, std::vector<int16_t>(8));
-    // size_t ptr = 1;
-    // while (!huf->empty()) {
-        // uint8_t ret = huf->next();
-        // if (!ret) {
-            // while (ptr < 64) {
-                // res[zig[ptr]][zag[ptr]] = 0;
-                // ++ptr;
-            // }
-            // break;
-        // }
-        // uint8_t r = ret >> 4 & 15;
-        // uint8_t s = ret & 15;
-        // uint16_t offset = huf->read_bits(s);
-        // int16_t var = (int16_t)(offset >= (1 << (s - 1)) ? offset : -((1 << s) - offset - 1));
-
-        // for (int i = 0; i < (int)r; ++i) {
-            // res[zig[ptr]][zag[ptr]] = 0;
-            // ++ptr;
-        // }
-        // res[zig[ptr]][zag[ptr]] = var;
-        // ++ptr;
-    // }
-    // return res;
-// }
-
-// std::vector<int16_t> DPCM::decode(const std::vector<uint8_t> &code,
-                                 // huffman::decoder *huf) {
-    // huf->feed(code);
-    // std::vector<int16_t> res;
-
-    // while (!huf->empty()) {
-        // uint8_t r = huf->next();
-        // uint16_t offset = huf->read_bits(r);
-        // int16_t diff = r == 0 ? 0 : (int16_t)(offset >= (1 << (r - 1)) ? offset : -((1 << r) - offset - 1));
-
-        // res.push_back(res.empty() ? diff : (int16_t)(diff + res.back()));
-    // }
-    // return res;
-// }
-
 quantizer::quantizer() {}
 
-quantizer::quantizer(const std::vector<std::vector<int16_t>> &qtable): qtable(qtable) {}
+quantizer::quantizer(const std::vector<std::vector<int>> &qtable): qtable(qtable) {}
 
 void quantizer::quantize(std::vector<std::vector<int16_t>> &tab) {
     static const int n = (int)tab.size();
@@ -246,17 +197,19 @@ void FDCT(std::vector<std::vector<int16_t>> &x) {
 }
 
 void IDCT(std::vector<std::vector<int16_t>> &x) {
-    static const double pi = acos(-1);
+    static const float pi = acos(-1);
     static const int n = (int)x.size();
-    std::vector<std::vector<double>> y(n, std::vector<double>(n));
+    static const float C0 = 1. / sqrt(2);
+    static const float Cu = 1.;
+    std::vector<std::vector<float>> y(n, std::vector<float>(n));
 
     for (int i = 0; i < n; ++i) {
         for (int j = 0; j < n; ++j) {
             for (int a = 0; a < n; ++a) {
                 for (int b = 0; b < n; ++b) {
-                    double p = cos((2 * i + 1) * a * pi / (2 * n));
-                    double q = cos((2 * j + 1) * b * pi / (2 * n));
-                    double z = (a == 0 ? 1. / sqrt(2) : 1.) * (b == 0 ? 1. / sqrt(2) : 1.);
+                    float p = cos((2 * i + 1) * a * pi / (2 * n));
+                    float q = cos((2 * j + 1) * b * pi / (2 * n));
+                    float z = (a == 0 ? 1. / sqrt(2) : 1.) * (b == 0 ? 1. / sqrt(2) : 1.);
                     y[i][j] += z * x[a][b] * p * q;
                 }
             }

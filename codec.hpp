@@ -24,9 +24,9 @@ namespace DPCM {
 }
 
 struct quantizer {
-    std::vector<std::vector<int16_t>> qtable;
+    std::vector<std::vector<int>> qtable;
     quantizer();
-    quantizer(const std::vector<std::vector<int16_t>> &);
+    quantizer(const std::vector<std::vector<int>> &);
     void quantize(std::vector<std::vector<int16_t>> &);
     void dequantize(std::vector<std::vector<int16_t>> &);
 };
