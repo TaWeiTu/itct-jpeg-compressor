@@ -5,7 +5,7 @@ huffman::decoder::decoder(const std::vector<uint8_t> &codeword,
                           const std::vector<std::vector<uint8_t>> &symbol) {
     int mask = 0;
     for (int i = 0; i < 16; ++i) {
-        mask = mask << 1;
+        mask <<= 1;
         for (int j = 0; j < (int)codeword[i]; ++j) {
             maps[std::make_pair(mask, i + 1)] = symbol[i][j];
             mask++;
@@ -47,10 +47,17 @@ huffman::decoder::decoder(const std::vector<uint8_t> &codeword,
 // }
 
 uint8_t huffman::decoder::next(buffer *buf) {
+    // fprintf(stderr, "[huffman::decoder::next] Start\n");
     int mask = 0;
     uint8_t leng = 0;
     while (true) {
+        if (buf->fpeek() == EOF) {
+            fprintf(stderr, "[Error] EOF\n");
+            exit(1);
+        }
         mask = mask << 1 | buf->read_bits(1);
+        // fprintf(stderr, "[huffman::decoder::next] mask = %d\n", (int)mask);
+        ++leng;
         auto it = maps.find(std::make_pair(mask, leng));
 
         if (it != maps.end()) 

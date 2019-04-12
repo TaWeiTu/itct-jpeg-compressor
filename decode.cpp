@@ -2,6 +2,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
+#include <unistd.h>
 #include <vector>
 
 #include "buffer.hpp"
@@ -49,7 +50,7 @@ int main(int argc, const char **argv) {
 
     std::vector<uint8_t> qt(6), fh(6), fv(6), dcid(6), acid(6);
     std::vector<huffman::decoder> dc(4), ac(4);
-    size_t ht, wd, itvl;
+    size_t ht = 0, wd = 0, itvl = 0;
     uint8_t hmax = 0, vmax = 0;
 
     bool soi = false;
@@ -60,6 +61,9 @@ int main(int argc, const char **argv) {
     while (!eoi) {
         uint8_t byte1 = buf->read_byte();
         uint8_t byte2 = buf->read_byte();
+
+        fprintf(stderr, "byte1 = 0x%hhx\n", byte1);
+        fprintf(stderr, "byte2 = 0x%hhx\n", byte2);
 
         if (byte1 != 0xFF) {
             fprintf(stderr, "[Error] Wrong format, expect 0xFF\n");
@@ -86,7 +90,7 @@ int main(int argc, const char **argv) {
                 ht = buf->read_bytes<size_t>(2);
                 wd = buf->read_bytes<size_t>(2);
 
-                uint8_t cnt = (uint8_t)fgetc(fp);
+                uint8_t cnt = (uint8_t)buf->read_byte();
                 for (int i = 0; i < (int)cnt; ++i) {
                     uint8_t cid = buf->read_byte();
                     uint8_t hor = buf->read_bits<uint8_t>(4);
@@ -194,7 +198,7 @@ int main(int argc, const char **argv) {
                 uint8_t cnt = buf->read_byte();
 
                 fprintf(stderr, "[Debug] SOS cnt = %d\n", (int)cnt);
-                fprintf(stderr, "Y: %d %d\n", (int)fh[1], (int)fv[1]);
+                fprintf(stderr, "Y:  %d %d\n", (int)fh[1], (int)fv[1]);
                 fprintf(stderr, "Cb: %d %d\n", (int)fh[2], (int)fv[2]);
                 fprintf(stderr, "Cr: %d %d\n", (int)fh[3], (int)fv[3]);
 
@@ -208,23 +212,43 @@ int main(int argc, const char **argv) {
                 }
 
                 buf->skip_bytes(3);
+                fprintf(stderr, "height = %d\n", (int)ht);
+                fprintf(stderr, "width = %d\n", (int)wd);
+
+                size_t hf = (ht + (hmax * 8) - 1) / (hmax * 8);
+                size_t wf = (wd + (vmax * 8) - 1) / (vmax * 8);
+
+                fprintf(stderr, "hf = %d\n", (int)hf);
+                fprintf(stderr, "wf = %d\n", (int)wf);
+                size_t fq = hf * wf;
+
 
                 // TODO: Read MCU
-                while (true) {
-                    // TODO: this is WRONG
-                    uint8_t byte = buf->read_byte();
-                    // fprintf(stderr, "[Debug] read 0x%hhx after SOS\n", byte);
-                    if (byte == 0xFF) {
-                        uint8_t nxt = buf->read_byte();
-                        if (nxt != 0x00) {
-                            buf->unread(nxt);
-                            buf->unread(byte);
-                            break;
-                        }
-                    }
+                size_t cnt_ = 0;
+                while (buf->read_mcu()) {
+                    /* ++cnt_;
+                    for (int c = 1; c <= 3; ++c) {
+                        for (int i = 0; i < (int)fv[c]; ++i) {
+                            for (int j = 0; j < (int)fh[c]; ++j) {
+                                int16_t diff = DPCM::decode(&dc[dcid[c]], buf);
+                                std::vector<std::vector<int16_t>> block = RLC::decode_block(&ac[acid[c]], buf);
+                                fprintf(stderr, "cnt = %d\n", (int)cnt_);
+                                fprintf(stderr, "diff = %d\n", (int)diff);
+                                for (int a = 0; a < 8; ++a) {
+                                    for (int b = 0; b < 8; ++b)
+                                        fprintf(stderr, "%d ", (int)block[a][b]);
 
+                                    fprintf(stderr, "\n");
+                                }
+                                // usleep(500000);
+                            }
+                        }
+                    } */
+                    buf->read_byte();
                 }
 
+                fprintf(stderr, "fpos = %d flen = %d\n", (int)buf->fpos, (int)buf->flen);
+                fprintf(stderr, "done reading MCU\n");
                 break;
             }
 

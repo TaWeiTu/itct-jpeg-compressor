@@ -4,6 +4,8 @@
 struct buffer {
     FILE *fp;
     int8_t bpos;
+    uint8_t cbyte;
+    long fpos, flen;
 
     inline buffer();
     inline buffer(FILE *);
@@ -20,11 +22,18 @@ struct buffer {
     inline void skip_bits(uint8_t);
     inline void skip_bytes(uint8_t);
     inline void unread(uint8_t);
+
+    inline bool read_mcu() const;
 };
 
 inline buffer::buffer() {}
 
-inline buffer::buffer(FILE *fp): fp(fp), bpos(7) {}
+inline buffer::buffer(FILE *fp): fp(fp), bpos(7), fpos(0) {
+    fseek(fp, 0, SEEK_END);
+    flen = ftell(fp);
+    rewind(fp);
+    cbyte = (uint8_t)fgetc(fp);
+}
 
 inline uint8_t buffer::fpeek() {
     uint8_t res = (uint8_t)fgetc(fp);
@@ -36,10 +45,11 @@ template <typename dtype = uint8_t>
 inline dtype buffer::read_bits(uint8_t s) {
     dtype res = 0;
     for (int i = 0; i < (int)s; ++i) {
-        res = (dtype)(res << 1 | (fpeek() >> bpos & 1));
+        res = (dtype)(res << 1 | (cbyte >> bpos & 1));
         if (--bpos < 0) {
             bpos = 7;
-            fgetc(fp);
+            cbyte = (uint8_t)fgetc(fp);
+            fpos++;
         }
     }
     return res;
@@ -68,6 +78,10 @@ inline void buffer::skip_bytes(uint8_t s) {
 
 inline void buffer::unread(uint8_t byte) {
     ungetc(byte, fp);
+}
+
+inline bool buffer::read_mcu() const {
+    return fpos < flen - 2;
 }
 
 #endif
