@@ -33,9 +33,9 @@ image::PPM::PPM(size_t ht, size_t wd, const char *filename): ht(ht), wd(wd), rpt
 
     fprintf(fp, "P6\n");
     char buf[20];
-    sprintf(buf, "%d", (int)ht);
-    fprintf(fp, "%s ", buf);
     sprintf(buf, "%d", (int)wd);
+    fprintf(fp, "%s ", buf);
+    sprintf(buf, "%d", (int)ht);
     fprintf(fp, "%s\n", buf);
     fprintf(fp, "255\n");
 }
