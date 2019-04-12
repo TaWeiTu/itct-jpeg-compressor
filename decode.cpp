@@ -7,6 +7,7 @@
 
 #include "buffer.hpp"
 #include "codec.hpp"
+#include "image.hpp"
 #include "huffman.hpp"
 #include "zigzag.hpp"
 
@@ -21,6 +22,9 @@
 #define EOI 0xD9
 
 
+// TODO: Deal with DRI
+
+
 int main(int argc, const char **argv) {
     if (argc < 2) {
         fprintf(stderr, "[Usage] ./decode source [destination]\n");
@@ -28,9 +32,18 @@ int main(int argc, const char **argv) {
     }
 
     FILE *fp = fopen(argv[1], "rb");
+
     if (!fp) {
         fprintf(stderr, "[Error] Image to be decoded not found\n");
         exit(1);
+    }
+
+    char *dest;
+
+    if (argc >= 3) {
+        dest = (char*)argv[2];
+    } else {
+        dest = (char*)"output.ppm";
     }
 
     static uint8_t qt[6], fh[6], fv[6], dcid[6], acid[6];
@@ -43,6 +56,7 @@ int main(int argc, const char **argv) {
     bool eoi = false;
 
     buffer *buf = new buffer(fp);
+    image::PPM *ppm = nullptr;
 
     while (!eoi) {
         uint8_t byte1 = buf->read_byte();
@@ -73,6 +87,8 @@ int main(int argc, const char **argv) {
                 buf->skip_bytes(3);
                 ht = buf->read_bytes<size_t>(2);
                 wd = buf->read_bytes<size_t>(2);
+
+                ppm = new image::PPM(ht, wd, dest);
 
                 uint8_t cnt = (uint8_t)buf->read_byte();
                 for (int i = 0; i < (int)cnt; ++i) {
@@ -192,11 +208,6 @@ int main(int argc, const char **argv) {
                 buf->skip_bytes(2);
                 uint8_t cnt = buf->read_byte();
 
-                // fprintf(stderr, "[Debug] SOS cnt = %d\n", (int)cnt);
-                // fprintf(stderr, "Y:  %d %d\n", (int)fh[1], (int)fv[1]);
-                // fprintf(stderr, "Cb: %d %d\n", (int)fh[2], (int)fv[2]);
-                // fprintf(stderr, "Cr: %d %d\n", (int)fh[3], (int)fv[3]);
-
                 for (int i = 0; i < (int)cnt; ++i) {
                     uint8_t cs = buf->read_byte();
                     uint8_t td = buf->read_bits<uint8_t>(4);
@@ -204,38 +215,85 @@ int main(int argc, const char **argv) {
 
                     dcid[cs] = td;
                     acid[cs] = ta;
-                    // fprintf(stderr, "color = %d dc = %d ac = %d\n", (int)cs, (int)td, (int)ta);
                 }
 
                 buf->skip_bytes(3);
-                // fprintf(stderr, "height = %d\n", (int)ht);
-                // fprintf(stderr, "width = %d\n", (int)wd);
 
-                size_t hf = (ht + (hmax * 8) - 1) / (hmax * 8);
-                size_t wf = (wd + (vmax * 8) - 1) / (vmax * 8);
+                size_t hf = (ht + (vmax * 8) - 1) / (vmax * 8);
+                size_t wf = (wd + (hmax * 8) - 1) / (hmax * 8);
 
-                // fprintf(stderr, "hf = %d\n", (int)hf);
-                // fprintf(stderr, "wf = %d\n", (int)wf);
-                size_t fq = hf * wf, mcu_cnt = 0;
                 int16_t last_diff[6] = {0, 0, 0, 0, 0, 0};
                 buf->start_read_mcu();
 
-                while (mcu_cnt < fq) {
-                    ++mcu_cnt;
-                    for (int c = 1; c <= 3; ++c) {
-                        for (int i = 0; i < (int)fv[c]; ++i) {
-                            for (int j = 0; j < (int)fh[c]; ++j) {
-                                int16_t diff = DPCM::decode(&dc[dcid[c]], buf);
-                                std::vector<std::vector<int16_t>> block = RLC::decode_block(&ac[acid[c]], buf);
+                for (int row = 0; row < (int)hf; ++row) {
+                    for (int col = 0; col < (int)wf; ++col) {
+                        const int16_t EMPTY = 32767;
+                        std::vector<std::vector<int16_t>> Y(8 * vmax, std::vector<int16_t>(8 * vmax, EMPTY));
+                        std::vector<std::vector<int16_t>> Cb(8 * vmax, std::vector<int16_t>(8 * vmax, EMPTY));
+                        std::vector<std::vector<int16_t>> Cr(8 * vmax, std::vector<int16_t>(8 * vmax, EMPTY));
+                        for (int c = 1; c <= 3; ++c) {
+                            for (int i = 0; i < (int)fv[c]; ++i) {
+                                for (int j = 0; j < (int)fh[c]; ++j) {
+                                    int16_t diff = DPCM::decode(&dc[dcid[c]], buf);
+                                    std::vector<std::vector<int16_t>> block = RLC::decode_block(&ac[acid[c]], buf);
 
-                                int16_t real_diff = (int16_t)(last_diff[c] + diff);
-                                last_diff[c] = (int16_t)(last_diff[c] + diff);
-                                block[0][0] = real_diff;
+                                    int16_t real_diff = (int16_t)(last_diff[c] + diff);
+                                    last_diff[c] = (int16_t)(last_diff[c] + diff);
+                                    block[0][0] = real_diff;
 
-                                qtz[qt[c]].dequantize(block);
-                                IDCT(block);
+                                    qtz[qt[c]].dequantize(block);
+                                    IDCT(block);
+
+                                    fprintf(stderr, "after IDCT\n");
+                                    for (int i = 0; i < 8; ++i) {
+                                        for (int j = 0; j < 8; ++j)
+                                            fprintf(stderr, "%d ", (int)block[i][j]);
+
+                                        fprintf(stderr, "\n");
+                                    }
+
+                                    switch (c) {
+                                        case 1:
+                                            for (int y = 0; y < 8; ++y) {
+                                                for (int x = 0; x < 8; ++x)
+                                                    Y[i * 8 + y][j * 8 + x] = block[y][x];
+                                            }
+                                            break;
+
+                                        case 2:
+                                            for (int y = 0; y < 8; ++y) {
+                                                for (int x = 0; x < 8; ++x) 
+                                                    Cb[i * 8 + y][j * 8 + x] = block[y][x];
+                                            }
+                                            break;
+
+                                        case 3:
+                                            for (int y = 0; y < 8; ++y) {
+                                                for (int x = 0; x < 8; ++x) 
+                                                    Cr[i * 8 + y][j * 8 + x] = block[y][x];
+                                            }
+                                            break;
+
+                                        default:
+                                            fprintf(stderr, "[Error] Unexpected color, expect Y = 1, Cb = 2, Cr = 3\n");
+                                            exit(1);
+                                    }
+                                }
                             }
                         }
+                        
+                        for (int i = 8; i < (int)Y.size(); ++i) {
+                            for (int j = 0; j < (int)Y.size(); ++j) {
+                                if (Y[i][j] == EMPTY)
+                                    Y[i][j] = Y[i % 8][j % 8];
+                                if (Cb[i][j] == EMPTY)
+                                    Cb[i][j] = Cb[i % 8][j % 8];
+                                if (Cr[i][j] == EMPTY)
+                                    Cr[i][j] = Cr[i % 8][j % 8];
+                            }
+                        }
+
+                        ppm->add_block(row * (vmax * 8), col * (hmax * 8), Y, Cb, Cr);
                     }
                 }
 

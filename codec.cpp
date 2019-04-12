@@ -197,9 +197,9 @@ void FDCT(std::vector<std::vector<int16_t>> &x) {
 }
 
 void IDCT(std::vector<std::vector<int16_t>> &x) {
-    static const float pi = acos(-1);
+    static const float pi = (float)acos(-1);
     static const int n = (int)x.size();
-    static const float C0 = 1. / sqrt(2);
+    static const float C0 = (float)(1. / sqrt(2));
     static const float Cu = 1.;
     std::vector<std::vector<float>> y(n, std::vector<float>(n));
 
@@ -207,9 +207,9 @@ void IDCT(std::vector<std::vector<int16_t>> &x) {
         for (int j = 0; j < n; ++j) {
             for (int a = 0; a < n; ++a) {
                 for (int b = 0; b < n; ++b) {
-                    float p = cos((2 * i + 1) * a * pi / (2 * n));
-                    float q = cos((2 * j + 1) * b * pi / (2 * n));
-                    float z = (a == 0 ? 1. / sqrt(2) : 1.) * (b == 0 ? 1. / sqrt(2) : 1.);
+                    float p = (float)cos((2. * i + 1) * a * pi / (2. * n));
+                    float q = (float)cos((2. * j + 1) * b * pi / (2. * n));
+                    float z = (a == 0 ? C0 : Cu) * (b == 0 ? C0 : Cu);
                     y[i][j] += z * x[a][b] * p * q;
                 }
             }
