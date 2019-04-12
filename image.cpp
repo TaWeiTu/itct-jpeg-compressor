@@ -10,13 +10,13 @@ pixel::pixel(uint8_t r, uint8_t g, uint8_t b): r(r), g(g), b(b) {
 }
 
 pixel::pixel(int16_t y, int16_t cb, int16_t cr): y(y), cb(cb), cr(cr) {
-    fprintf(stderr, "[Pixel] r = %d\n", (int)(y + 1.402 * (cr - 128)));
-    fprintf(stderr, "[Pixel] g = %d\n", (int)(y - 0.344136 * (cb - 128) - 0.714136 * (cr - 128)));
-    fprintf(stderr, "[Pixel] b = %d\n", (int)(y + 1.772 * (cb - 128)));
+    // fprintf(stderr, "[Pixel] r = %d\n", (int)(y + 1.402 * cb + 128));
+    // fprintf(stderr, "[Pixel] g = %d\n", (int)(y - 0.344136 * cr - 0.714136 * cb + 128));
+    // fprintf(stderr, "[Pixel] b = %d\n", (int)(y + 1.772 * cb + 128));
 
-    r = (uint8_t)(y + 1.402 * (cr - 128));
-    g = (uint8_t)(y - 0.344136 * (cb - 128) - 0.714136 * (cr - 128));
-    b = (uint8_t)(y + 1.772 * (cb - 128));
+    r = (uint8_t)(y + 1.402 * cr + 128);
+    g = (uint8_t)(y - 0.344136 * cb - 0.714136 * cr + 128);
+    b = (uint8_t)(y + 1.772 * cb + 128);
 }
 
 image::PPM::PPM(): fp(nullptr) {}
@@ -30,6 +30,14 @@ image::PPM::PPM(size_t ht, size_t wd, const char *filename): ht(ht), wd(wd), rpt
         fprintf(stderr, "[Error] Can't write PPM.\n");
         exit(1);
     }
+
+    fprintf(fp, "P6\n");
+    char buf[20];
+    sprintf(buf, "%d", (int)ht);
+    fprintf(fp, "%s ", buf);
+    sprintf(buf, "%d", (int)wd);
+    fprintf(fp, "%s\n", buf);
+    fprintf(fp, "255\n");
 }
 
 void image::PPM::add_pixel(size_t r, size_t c, pixel px) {
@@ -52,7 +60,6 @@ void image::PPM::add_block(size_t topmost, size_t leftmost,
                            const std::vector<std::vector<int16_t>> &Cb,
                            const std::vector<std::vector<int16_t>> &Cr) {
     
-    fprintf(stderr, "topmost = %d leftmost = %d\n", topmost, leftmost);
     for (size_t i = 0; i < Y.size(); ++i) {
         for (size_t j = 0; j < Y.size(); ++j) {
             if (topmost + i >= ht || leftmost + j >= wd) continue;

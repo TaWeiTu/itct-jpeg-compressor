@@ -228,9 +228,9 @@ int main(int argc, const char **argv) {
                 for (int row = 0; row < (int)hf; ++row) {
                     for (int col = 0; col < (int)wf; ++col) {
                         const int16_t EMPTY = 32767;
-                        std::vector<std::vector<int16_t>> Y(8 * vmax, std::vector<int16_t>(8 * vmax, EMPTY));
-                        std::vector<std::vector<int16_t>> Cb(8 * vmax, std::vector<int16_t>(8 * vmax, EMPTY));
-                        std::vector<std::vector<int16_t>> Cr(8 * vmax, std::vector<int16_t>(8 * vmax, EMPTY));
+                        std::vector<std::vector<int16_t>> Y(8 * vmax, std::vector<int16_t>(8 * hmax, EMPTY));
+                        std::vector<std::vector<int16_t>> Cb(8 * vmax, std::vector<int16_t>(8 * hmax, EMPTY));
+                        std::vector<std::vector<int16_t>> Cr(8 * vmax, std::vector<int16_t>(8 * hmax, EMPTY));
                         for (int c = 1; c <= 3; ++c) {
                             for (int i = 0; i < (int)fv[c]; ++i) {
                                 for (int j = 0; j < (int)fh[c]; ++j) {
@@ -243,14 +243,6 @@ int main(int argc, const char **argv) {
 
                                     qtz[qt[c]].dequantize(block);
                                     IDCT(block);
-
-                                    fprintf(stderr, "after IDCT\n");
-                                    for (int i = 0; i < 8; ++i) {
-                                        for (int j = 0; j < 8; ++j)
-                                            fprintf(stderr, "%d ", (int)block[i][j]);
-
-                                        fprintf(stderr, "\n");
-                                    }
 
                                     switch (c) {
                                         case 1:
@@ -282,7 +274,8 @@ int main(int argc, const char **argv) {
                             }
                         }
                         
-                        for (int i = 8; i < (int)Y.size(); ++i) {
+                        // fprintf(stderr, "Y.size() = %d\n", (int)Y.size());
+                        for (int i = 0; i < (int)Y.size(); ++i) {
                             for (int j = 0; j < (int)Y.size(); ++j) {
                                 if (Y[i][j] == EMPTY)
                                     Y[i][j] = Y[i % 8][j % 8];
