@@ -10,13 +10,15 @@ pixel::pixel(uint8_t r, uint8_t g, uint8_t b): r(r), g(g), b(b) {
 }
 
 pixel::pixel(int16_t y, int16_t cb, int16_t cr): y(y), cb(cb), cr(cr) {
-    // fprintf(stderr, "[Pixel] r = %d\n", (int)(y + 1.402 * cb + 128));
-    // fprintf(stderr, "[Pixel] g = %d\n", (int)(y - 0.344136 * cr - 0.714136 * cb + 128));
-    // fprintf(stderr, "[Pixel] b = %d\n", (int)(y + 1.772 * cb + 128));
-
-    r = (uint8_t)(y + 1.402 * cr + 128);
-    g = (uint8_t)(y - 0.344136 * cb - 0.714136 * cr + 128);
-    b = (uint8_t)(y + 1.772 * cb + 128);
+    int16_t r_ = (int16_t)(y + 1.402 * cr + 128);
+    int16_t g_ = (int16_t)(y - 0.344136 * cb - 0.714136 * cr + 128);
+    int16_t b_ = (int16_t)(y + 1.772 * cb + 128);
+    r_ = std::clamp(r_, (int16_t)0, (int16_t)255);
+    g_ = std::clamp(g_, (int16_t)0, (int16_t)255);
+    b_ = std::clamp(b_, (int16_t)0, (int16_t)255);
+    r = (uint8_t)r_;
+    g = (uint8_t)g_;
+    b = (uint8_t)b_;
 }
 
 image::PPM::PPM(): fp(nullptr) {}

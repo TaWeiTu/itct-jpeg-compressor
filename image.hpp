@@ -1,6 +1,7 @@
 #ifndef IMAGE_HPP_INCLUDED
 #define IMAGE_HPP_INCLUDED
 
+#include <algorithm>
 #include <cstdint>
 #include <fstream>
 #include <string>

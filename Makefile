@@ -1,6 +1,6 @@
 CXX = g++-8
-CFLAGS = -Wall -Wextra -Wconversion -O3 -std=c++14
-DBGFLAGS = -Wall -Wextra -Wconversion -O3 -std=c++14 -fsanitize=undefined -fsanitize=leak -fsanitize=address
+CFLAGS = -Wall -Wextra -Wconversion -O3 -std=c++17
+DBGFLAGS = -Wall -Wextra -Wconversion -O3 -std=c++17 -fsanitize=undefined -fsanitize=leak -fsanitize=address
 
 all: decode
 
