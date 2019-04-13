@@ -196,30 +196,106 @@ void FDCT(std::vector<std::vector<int16_t>> &x) {
     }
 }
 
+static const float cosine[8][8] = {
+    {1.00000, 0.98079, 0.92388, 0.83147, 0.70711, 0.55557, 0.38268, 0.19509},
+    {1.00000, 0.83147, 0.38268, -0.19509, -0.70711, -0.98079, -0.92388, -0.55557},
+    {1.00000, 0.55557, -0.38268, -0.98079, -0.70711, 0.19509, 0.92388, 0.83147},
+    {1.00000, 0.19509, -0.92388, -0.55557, 0.70711, 0.83147, -0.38268, -0.98079},
+    {1.00000, -0.19509, -0.92388, 0.55557, 0.70711, -0.83147, -0.38268, 0.98079},
+    {1.00000, -0.55557, -0.38268, 0.98079, -0.70711, -0.19509, 0.92388, -0.83147},
+    {1.00000, -0.83147, 0.38268, 0.19509, -0.70711, 0.98079, -0.92388, 0.55557},
+    {1.00000, -0.98079, 0.92388, -0.83147, 0.70711, -0.55557, 0.38268, -0.19509}
+};
+
 void IDCT(std::vector<std::vector<int16_t>> &x) {
-    static const float pi = (float)acos(-1);
-    static const int n = (int)x.size();
     static const float C0 = (float)(1. / sqrt(2));
     static const float Cu = 1.;
-    std::vector<std::vector<float>> y(n, std::vector<float>(n));
+    static const float C0u = C0 * Cu;
+    static const float C00 = C0 * C0;
+    static const float Cuu = Cu * Cu;
+    static float y[8][8];
 
-    for (int i = 0; i < n; ++i) {
-        for (int j = 0; j < n; ++j) {
-            for (int a = 0; a < n; ++a) {
-                for (int b = 0; b < n; ++b) {
-                    float p = (float)cos((2. * i + 1) * a * pi / (2. * n));
-                    float q = (float)cos((2. * j + 1) * b * pi / (2. * n));
-                    float z = (a == 0 ? C0 : Cu) * (b == 0 ? C0 : Cu);
-                    y[i][j] += z * x[a][b] * p * q;
-                }
-            }
+    for (int i = 0; i < 8; ++i) {
+        for (int j = 0; j < 8; ++j) {
+            y[i][j] = 0;
+            y[i][j] += C00 * x[0][0] * cosine[i][0] * cosine[j][0];
+            y[i][j] += C0u * x[0][1] * cosine[i][0] * cosine[j][1];
+            y[i][j] += C0u * x[0][2] * cosine[i][0] * cosine[j][2];
+            y[i][j] += C0u * x[0][3] * cosine[i][0] * cosine[j][3];
+            y[i][j] += C0u * x[0][4] * cosine[i][0] * cosine[j][4];
+            y[i][j] += C0u * x[0][5] * cosine[i][0] * cosine[j][5];
+            y[i][j] += C0u * x[0][6] * cosine[i][0] * cosine[j][6];
+            y[i][j] += C0u * x[0][7] * cosine[i][0] * cosine[j][7];
 
-            y[i][j] *= 2. / n;
+            y[i][j] += C0u * x[1][0] * cosine[i][1] * cosine[j][0];
+            y[i][j] += Cuu * x[1][1] * cosine[i][1] * cosine[j][1];
+            y[i][j] += Cuu * x[1][2] * cosine[i][1] * cosine[j][2];
+            y[i][j] += Cuu * x[1][3] * cosine[i][1] * cosine[j][3];
+            y[i][j] += Cuu * x[1][4] * cosine[i][1] * cosine[j][4];
+            y[i][j] += Cuu * x[1][5] * cosine[i][1] * cosine[j][5];
+            y[i][j] += Cuu * x[1][6] * cosine[i][1] * cosine[j][6];
+            y[i][j] += Cuu * x[1][7] * cosine[i][1] * cosine[j][7];
+
+            y[i][j] += C0u * x[2][0] * cosine[i][2] * cosine[j][0];
+            y[i][j] += Cuu * x[2][1] * cosine[i][2] * cosine[j][1];
+            y[i][j] += Cuu * x[2][2] * cosine[i][2] * cosine[j][2];
+            y[i][j] += Cuu * x[2][3] * cosine[i][2] * cosine[j][3];
+            y[i][j] += Cuu * x[2][4] * cosine[i][2] * cosine[j][4];
+            y[i][j] += Cuu * x[2][5] * cosine[i][2] * cosine[j][5];
+            y[i][j] += Cuu * x[2][6] * cosine[i][2] * cosine[j][6];
+            y[i][j] += Cuu * x[2][7] * cosine[i][2] * cosine[j][7];
+            
+            y[i][j] += C0u * x[3][0] * cosine[i][3] * cosine[j][0];
+            y[i][j] += Cuu * x[3][1] * cosine[i][3] * cosine[j][1];
+            y[i][j] += Cuu * x[3][2] * cosine[i][3] * cosine[j][2];
+            y[i][j] += Cuu * x[3][3] * cosine[i][3] * cosine[j][3];
+            y[i][j] += Cuu * x[3][4] * cosine[i][3] * cosine[j][4];
+            y[i][j] += Cuu * x[3][5] * cosine[i][3] * cosine[j][5];
+            y[i][j] += Cuu * x[3][6] * cosine[i][3] * cosine[j][6];
+            y[i][j] += Cuu * x[3][7] * cosine[i][3] * cosine[j][7];
+
+            y[i][j] += C0u * x[4][0] * cosine[i][4] * cosine[j][0];
+            y[i][j] += Cuu * x[4][1] * cosine[i][4] * cosine[j][1];
+            y[i][j] += Cuu * x[4][2] * cosine[i][4] * cosine[j][2];
+            y[i][j] += Cuu * x[4][3] * cosine[i][4] * cosine[j][3];
+            y[i][j] += Cuu * x[4][4] * cosine[i][4] * cosine[j][4];
+            y[i][j] += Cuu * x[4][5] * cosine[i][4] * cosine[j][5];
+            y[i][j] += Cuu * x[4][6] * cosine[i][4] * cosine[j][6];
+            y[i][j] += Cuu * x[4][7] * cosine[i][4] * cosine[j][7];
+
+            y[i][j] += C0u * x[5][0] * cosine[i][5] * cosine[j][0];
+            y[i][j] += Cuu * x[5][1] * cosine[i][5] * cosine[j][1];
+            y[i][j] += Cuu * x[5][2] * cosine[i][5] * cosine[j][2];
+            y[i][j] += Cuu * x[5][3] * cosine[i][5] * cosine[j][3];
+            y[i][j] += Cuu * x[5][4] * cosine[i][5] * cosine[j][4];
+            y[i][j] += Cuu * x[5][5] * cosine[i][5] * cosine[j][5];
+            y[i][j] += Cuu * x[5][6] * cosine[i][5] * cosine[j][6];
+            y[i][j] += Cuu * x[5][7] * cosine[i][5] * cosine[j][7];
+
+            y[i][j] += C0u * x[6][0] * cosine[i][6] * cosine[j][0];
+            y[i][j] += Cuu * x[6][1] * cosine[i][6] * cosine[j][1];
+            y[i][j] += Cuu * x[6][2] * cosine[i][6] * cosine[j][2];
+            y[i][j] += Cuu * x[6][3] * cosine[i][6] * cosine[j][3];
+            y[i][j] += Cuu * x[6][4] * cosine[i][6] * cosine[j][4];
+            y[i][j] += Cuu * x[6][5] * cosine[i][6] * cosine[j][5];
+            y[i][j] += Cuu * x[6][6] * cosine[i][6] * cosine[j][6];
+            y[i][j] += Cuu * x[6][7] * cosine[i][6] * cosine[j][7];
+
+            y[i][j] += C0u * x[7][0] * cosine[i][7] * cosine[j][0];
+            y[i][j] += Cuu * x[7][1] * cosine[i][7] * cosine[j][1];
+            y[i][j] += Cuu * x[7][2] * cosine[i][7] * cosine[j][2];
+            y[i][j] += Cuu * x[7][3] * cosine[i][7] * cosine[j][3];
+            y[i][j] += Cuu * x[7][4] * cosine[i][7] * cosine[j][4];
+            y[i][j] += Cuu * x[7][5] * cosine[i][7] * cosine[j][5];
+            y[i][j] += Cuu * x[7][6] * cosine[i][7] * cosine[j][6];
+            y[i][j] += Cuu * x[7][7] * cosine[i][7] * cosine[j][7];
+
+            y[i][j] *= 0.25;
         }
     }
 
-    for (int i = 0; i < n; ++i) {
-        for (int j = 0; j < n; ++j)
+    for (int i = 0; i < 8; ++i) {
+        for (int j = 0; j < 8; ++j)
             x[i][j] = (int16_t)y[i][j];
     }
 }
