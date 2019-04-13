@@ -4,9 +4,9 @@
 #include <cstdint>
 #include <cstdio>
 #include <map>
-#include <vector>
-#include <utility>
 #include <queue>
+#include <utility>
+#include <vector>
 
 #include "buffer.hpp"
 

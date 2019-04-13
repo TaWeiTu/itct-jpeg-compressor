@@ -100,29 +100,4 @@ inline void buffer::flush() {
     while (bpos != 7) read_bits(1);
 }
 
-// void _ugly_define_template_() {
-    // buffer _;
-
-    // _.read_bits<int8_t>(0);
-    // _.read_bits<uint8_t>(0);
-    // _.read_bits<int16_t>(0);
-    // _.read_bits<uint16_t>(0);
-    // _.read_bits<int32_t>(0);
-    // _.read_bits<uint32_t>(0);
-    // _.read_bits<size_t>(0);
-    // _.read_bits<int>(0);
-    // _.read_bits<int64_t>(0);
-    // _.read_bits<uint64_t>(0);
-    // _.read_bytes<int8_t>(0);
-    // _.read_bytes<uint8_t>(0);
-    // _.read_bytes<int16_t>(0);
-    // _.read_bytes<uint16_t>(0);
-    // _.read_bytes<int32_t>(0);
-    // _.read_bytes<uint32_t>(0);
-    // _.read_bytes<int64_t>(0);
-    // _.read_bytes<uint64_t>(0);
-    // _.read_bytes<int>(0);
-    // _.read_bytes<size_t>(0);
-// }
-
 #endif

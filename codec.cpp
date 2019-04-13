@@ -35,10 +35,29 @@ std::vector<std::vector<int16_t>> RLC::decode_block(huffman::decoder *huf, buffe
 
     if (ptr > 64) {
         fprintf(stderr, "[Error] variable ptr = %d exceed 64\n", (int)ptr);
-        assert(ptr <= 64);
+        exit(1);
     }
 
     return res;
+}
+
+std::vector<std::pair<uint8_t, int16_t>> encode_block(const std::vector<std::vector<int16_t>> &block) {
+    std::vector<std::pair<uint8_t, int16_t>> code;
+
+    for (int i = 0, j = 0; i < 64; ) {
+        for (j = i; j < 64 && block[zig[j]][zag[j]] == 0; ++j);
+
+        if (j == 64) {
+            code.emplace_back(0, 0);
+            break;
+        } else {
+            uint8_t leng = (uint8_t)(j - i);
+            code.emplace_back(leng, block[zig[j]][zag[j]]);
+            i = j + 1;
+        }
+    }
+
+    return code;
 }
 
 int16_t DPCM::decode(huffman::decoder *huf, buffer *buf) {
@@ -75,137 +94,114 @@ void quantizer::dequantize(std::vector<std::vector<int16_t>> &tab) {
     }
 }
 
-/* void FFT(std::vector<std::complex<double>> &v, int n) {
-    static const int maxn = 16;
-    static std::complex<double> omega[maxn + 1];
-    static const double pi = acos(-1);
-
-    for (int i = 0; i <= maxn; ++i)
-        omega[i] = std::complex<double>(cos(2 * pi * i / maxn), sin(2 * pi * i / maxn));
-
-    int z = __builtin_ctz(n) - 1;
-    for (int i = 0; i < n; ++i) {
-        int x = 0;
-        for (int j = 0; (1 << j) < n; ++j) x ^= (i >> j & 1) << (z - j);
-        if (x > i) std::swap(v[x], v[i]);
-    }
-
-
-    for (int s = 2; s <= n; s <<= 1) {
-        int z = s >> 1;
-        for (int i = 0; i < n; i += s) {
-            for (int k = 0; k < z; ++k) {
-                std::complex<double> x = v[i + z + k] * omega[maxn / s * k];
-                v[i + z + k] = v[i + k] - x;
-                v[i + k] = v[i + k] + x;
-            }
-        }
-    }
-} */
-
-// void IDCT_fast_1D(std::vector<int16_t> &x) {
-    // static const double pi = acos(-1);
-    // std::vector<cplx> fft(16);
-    // for (int i = 0; i < 8; ++i) fft[i] = cplx(x[i], 0);
-
-    // FFT(fft, 16);
-
-    // for (int i = 0; i < 8; ++i) {
-        // double coef = 4 / (i == 0 ? 1. / sqrt(2) : 1) * cos(pi * i  / 16);
-        // x[i] = (int16_t)(fft[i].re / coef);
-    // }
-// }
-
-// void IDCT_fast_2D(std::vector<std::vector<int16_t>> &x) {
-    // for (int i = 0; i < 8; ++i) {
-        // IDCT_fast_1D(x[i]);
-    // }
-
-    // for (int i = 0; i < 8; ++i) {
-        // std::vector<int16_t> col(8);
-        // for (int j = 0; j < 8; ++j) col[j] = x[j][i];
-
-        // IDCT_fast_1D(col);
-        // for (int j = 0; j < 8; ++j) x[j][i] = col[j];
-    // }
-// }
-
-/* void FDCT_naive_1D(std::vector<int16_t> &x) {
-    static const double pi = acos(-1);
-    static const std::complex<double> I(0, 1);
-
-    // std::vector<double> y(8, 0);
-    // for (int i = 0; i < 8; ++i) {
-        // for (int j = 0; j < 8; ++j) {
-            // y[i] += x[j] * cos((2 * j + 1) * i * pi / 16);
-        // }
-        // y[i] *= (i == 0 ? 1. / sqrt(2) : 1) / 2;
-    // }
-    // for (int i = 0; i < 8; ++i) x[i] = (int16_t)y[i];
-
-    std::vector<std::complex<double>> y(16);
-    for (int i = 0; i < 8; ++i) y[i] = std::complex<double>(x[i], 0);
-    FFT(y, 16);
-    for (int i = 0; i < 16; ++i) 
-        y[i] = std::complex<double>(y[i].real(), -y[i].imag());
-    for (int i = 0; i < 16; ++i) fprintf(stderr, "(%.5lf, %.5lf) ", y[i].real(), y[i].imag());
-
-    const std::complex<double> fact = -I * pi / 16.;
-    fprintf(stderr, "\n");
-    for (int i = 0; i < 8; ++i) {
-        double coef = 4 / (i == 0 ? 1. / sqrt(2) : 1) * cos(pi * i / 16);
-        // y[i] *= exp(fact * (double)i);
-        x[i] = (int16_t)(y[i].real() / coef);
-    }
-} */
-
-/* void FDCT_naive_2D(std::vector<std::vector<int16_t>> &x) {
-    for (int i = 0; i < 8; ++i) {
-        FDCT_naive_1D(x[i]); 
-    }
-    for (int i = 0; i < 8; ++i) {
-        std::vector<int16_t> y(8);
-        for (int j = 0; j < 8; ++j) y[j] = x[j][i];
-
-        FDCT_naive_1D(y);
-        for (int j = 0; j < 8; ++j) x[j][i] = y[j];
-    }
-} */
+static const float cosine[8][8] = {
+    {1.00000f, 0.98079f, 0.92388f, 0.83147f, 0.70711f, 0.55557f, 0.38268f, 0.19509f},
+    {1.00000f, 0.83147f, 0.38268f, -0.19509f, -0.70711f, -0.98079f, -0.92388f, -0.55557f},
+    {1.00000f, 0.55557f, -0.38268f, -0.98079f, -0.70711f, 0.19509f, 0.92388f, 0.83147f},
+    {1.00000f, 0.19509f, -0.92388f, -0.55557f, 0.70711f, 0.83147f, -0.38268f, -0.98079f},
+    {1.00000f, -0.19509f, -0.92388f, 0.55557f, 0.70711f, -0.83147f, -0.38268f, 0.98079f},
+    {1.00000f, -0.55557f, -0.38268f, 0.98079f, -0.70711f, -0.19509f, 0.92388f, -0.83147f},
+    {1.00000f, -0.83147f, 0.38268f, 0.19509f, -0.70711f, 0.98079f, -0.92388f, 0.55557f},
+    {1.00000f, -0.98079f, 0.92388f, -0.83147f, 0.70711f, -0.55557f, 0.38268f, -0.19509f}
+};
 
 void FDCT(std::vector<std::vector<int16_t>> &x) {
-    static const double pi = acos(-1);
-    static const int n = (int)x.size();
-    std::vector<std::vector<double>> y(n, std::vector<double>(n));
+    static const float C0 = (float)(1. / sqrt(2));
+    static const float Cu = 1.;
+    static float y[8][8];
 
-    for (int i = 0; i < n; ++i) {
-        for (int j = 0; j < n; ++j) {
-            for (int a = 0; a < n; ++a) {
-                for (int b = 0; b < n; ++b) {
-                    double p = cos((2 * a + 1) * i * pi / (2 * n));
-                    double q = cos((2 * b + 1) * j * pi / (2 * n));
-                    y[i][j] += x[a][b] * p * q;
-                }
-            }
-            y[i][j] *= 2.0 / n * (i == 0 ? 1. / sqrt(2) : 1) * (j == 0 ? 1. / sqrt(2) : 1);
+    for (int i = 0; i < 8; ++i) {
+        for (int j = 0; j < 8; ++j) {
+            y[i][j] = 0.0;
+            y[i][j] += x[0][0] * cosine[0][i] * cosine[0][j];
+            y[i][j] += x[0][1] * cosine[0][i] * cosine[1][j];
+            y[i][j] += x[0][2] * cosine[0][i] * cosine[2][j];
+            y[i][j] += x[0][3] * cosine[0][i] * cosine[3][j];
+            y[i][j] += x[0][4] * cosine[0][i] * cosine[4][j];
+            y[i][j] += x[0][5] * cosine[0][i] * cosine[5][j];
+            y[i][j] += x[0][6] * cosine[0][i] * cosine[6][j];
+            y[i][j] += x[0][7] * cosine[0][i] * cosine[7][j];
+
+            y[i][j] += x[1][0] * cosine[0][i] * cosine[0][j];
+            y[i][j] += x[1][1] * cosine[0][i] * cosine[1][j];
+            y[i][j] += x[1][2] * cosine[0][i] * cosine[2][j];
+            y[i][j] += x[1][3] * cosine[0][i] * cosine[3][j];
+            y[i][j] += x[1][4] * cosine[0][i] * cosine[4][j];
+            y[i][j] += x[1][5] * cosine[0][i] * cosine[5][j];
+            y[i][j] += x[1][6] * cosine[0][i] * cosine[6][j];
+            y[i][j] += x[1][7] * cosine[0][i] * cosine[7][j];
+
+            y[i][j] += x[2][0] * cosine[0][i] * cosine[0][j];
+            y[i][j] += x[2][1] * cosine[0][i] * cosine[1][j];
+            y[i][j] += x[2][2] * cosine[0][i] * cosine[2][j];
+            y[i][j] += x[2][3] * cosine[0][i] * cosine[3][j];
+            y[i][j] += x[2][4] * cosine[0][i] * cosine[4][j];
+            y[i][j] += x[2][5] * cosine[0][i] * cosine[5][j];
+            y[i][j] += x[2][6] * cosine[0][i] * cosine[6][j];
+            y[i][j] += x[2][7] * cosine[0][i] * cosine[7][j];
+
+            y[i][j] += x[3][0] * cosine[0][i] * cosine[0][j];
+            y[i][j] += x[3][1] * cosine[0][i] * cosine[1][j];
+            y[i][j] += x[3][2] * cosine[0][i] * cosine[2][j];
+            y[i][j] += x[3][3] * cosine[0][i] * cosine[3][j];
+            y[i][j] += x[3][4] * cosine[0][i] * cosine[4][j];
+            y[i][j] += x[3][5] * cosine[0][i] * cosine[5][j];
+            y[i][j] += x[3][6] * cosine[0][i] * cosine[6][j];
+            y[i][j] += x[3][7] * cosine[0][i] * cosine[7][j];
+
+            y[i][j] += x[4][0] * cosine[0][i] * cosine[0][j];
+            y[i][j] += x[4][1] * cosine[0][i] * cosine[1][j];
+            y[i][j] += x[4][2] * cosine[0][i] * cosine[2][j];
+            y[i][j] += x[4][3] * cosine[0][i] * cosine[3][j];
+            y[i][j] += x[4][4] * cosine[0][i] * cosine[4][j];
+            y[i][j] += x[4][5] * cosine[0][i] * cosine[5][j];
+            y[i][j] += x[4][6] * cosine[0][i] * cosine[6][j];
+            y[i][j] += x[4][7] * cosine[0][i] * cosine[7][j];
+
+            y[i][j] += x[5][0] * cosine[0][i] * cosine[0][j];
+            y[i][j] += x[5][1] * cosine[0][i] * cosine[1][j];
+            y[i][j] += x[5][2] * cosine[0][i] * cosine[2][j];
+            y[i][j] += x[5][3] * cosine[0][i] * cosine[3][j];
+            y[i][j] += x[5][4] * cosine[0][i] * cosine[4][j];
+            y[i][j] += x[5][5] * cosine[0][i] * cosine[5][j];
+            y[i][j] += x[5][6] * cosine[0][i] * cosine[6][j];
+            y[i][j] += x[5][7] * cosine[0][i] * cosine[7][j];
+
+            y[i][j] += x[6][0] * cosine[0][i] * cosine[0][j];
+            y[i][j] += x[6][1] * cosine[0][i] * cosine[1][j];
+            y[i][j] += x[6][2] * cosine[0][i] * cosine[2][j];
+            y[i][j] += x[6][3] * cosine[0][i] * cosine[3][j];
+            y[i][j] += x[6][4] * cosine[0][i] * cosine[4][j];
+            y[i][j] += x[6][5] * cosine[0][i] * cosine[5][j];
+            y[i][j] += x[6][6] * cosine[0][i] * cosine[6][j];
+            y[i][j] += x[6][7] * cosine[0][i] * cosine[7][j];
+
+            y[i][j] += x[7][0] * cosine[0][i] * cosine[0][j];
+            y[i][j] += x[7][1] * cosine[0][i] * cosine[1][j];
+            y[i][j] += x[7][2] * cosine[0][i] * cosine[2][j];
+            y[i][j] += x[7][3] * cosine[0][i] * cosine[3][j];
+            y[i][j] += x[7][4] * cosine[0][i] * cosine[4][j];
+            y[i][j] += x[7][5] * cosine[0][i] * cosine[5][j];
+            y[i][j] += x[7][6] * cosine[0][i] * cosine[6][j];
+            y[i][j] += x[7][7] * cosine[0][i] * cosine[7][j];
+
+            // for (int a = 0; a < 8; ++a) {
+                // for (int b = 0; b < 8; ++b) {
+                    // double p = cos((2 * a + 1) * i * pi / (2 * n));
+                    // double q = cos((2 * b + 1) * j * pi / (2 * n));
+                    // y[i][j] += x[a][b] * p * q;
+                // }
+            // }
+            
+            y[i][j] = (float)(y[i][j] * 0.25 * (i == 0 ? C0 : Cu) * (j == 0 ? C0 : Cu));
         }
     }
 
-    for (int i = 0; i < n; ++i) {
-        for (int j = 0; j < n; ++j) 
+    for (int i = 0; i < 8; ++i) {
+        for (int j = 0; j < 8; ++j) 
             x[i][j] = (int16_t)y[i][j];
     }
 }
-
-static const float cosine[8][8] = {
-    {1.00000, 0.98079, 0.92388, 0.83147, 0.70711, 0.55557, 0.38268, 0.19509},
-    {1.00000, 0.83147, 0.38268, -0.19509, -0.70711, -0.98079, -0.92388, -0.55557},
-    {1.00000, 0.55557, -0.38268, -0.98079, -0.70711, 0.19509, 0.92388, 0.83147},
-    {1.00000, 0.19509, -0.92388, -0.55557, 0.70711, 0.83147, -0.38268, -0.98079},
-    {1.00000, -0.19509, -0.92388, 0.55557, 0.70711, -0.83147, -0.38268, 0.98079},
-    {1.00000, -0.55557, -0.38268, 0.98079, -0.70711, -0.19509, 0.92388, -0.83147},
-    {1.00000, -0.83147, 0.38268, 0.19509, -0.70711, 0.98079, -0.92388, 0.55557},
-    {1.00000, -0.98079, 0.92388, -0.83147, 0.70711, -0.55557, 0.38268, -0.19509}
-};
 
 void IDCT(std::vector<std::vector<int16_t>> &x) {
     static const float C0 = (float)(1. / sqrt(2));
@@ -290,7 +286,7 @@ void IDCT(std::vector<std::vector<int16_t>> &x) {
             y[i][j] += Cuu * x[7][6] * cosine[i][7] * cosine[j][6];
             y[i][j] += Cuu * x[7][7] * cosine[i][7] * cosine[j][7];
 
-            y[i][j] *= 0.25;
+            y[i][j] = (float)(y[i][j] * 0.25);
         }
     }
 

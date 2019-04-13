@@ -4,7 +4,9 @@
 *.o
 images
 decode
+encode
 *.dSYM
 log
 *.ppm
 *.bmp
+bmp_format

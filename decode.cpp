@@ -2,6 +2,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <unistd.h>
 #include <vector>
 
@@ -20,6 +21,15 @@
 #define APP 0xE0
 #define COM 0xFE
 #define EOI 0xD9
+
+#define RST0 0xD0
+#define RST1 0xD1
+#define RST2 0xD2
+#define RST3 0xD3
+#define RST4 0xD4
+#define RST5 0xD5
+#define RST6 0xD6
+#define RST7 0xD7
 
 
 // TODO: Deal with DRI
@@ -225,6 +235,7 @@ int main(int argc, const char **argv) {
                 int16_t last_diff[6] = {0, 0, 0, 0, 0, 0};
                 buf->start_read_mcu();
 
+                size_t RSTn = 0;
                 for (int row = 0; row < (int)hf; ++row) {
                     for (int col = 0; col < (int)wf; ++col) {
                         const int16_t EMPTY = 32767;
@@ -273,6 +284,13 @@ int main(int argc, const char **argv) {
                                 }
                             }
                         }
+
+                        ++RSTn;
+                        if (itvl > 0 && RSTn == itvl) {
+                            memset(last_diff, 0, sizeof(last_diff));
+                            RSTn = 0;
+                        }
+
                         
                         // fprintf(stderr, "Y.size() = %d\n", (int)Y.size());
                         for (int i = 0; i < (int)Y.size(); ++i) {
