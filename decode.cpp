@@ -53,7 +53,7 @@ int main(int argc, const char **argv) {
     if (argc >= 3) {
         dest = (char*)argv[2];
     } else {
-        dest = (char*)"output.ppm";
+        dest = (char*)"output.bmp";
     }
 
     static uint8_t qt[6], fh[6], fv[6], dcid[6], acid[6];
@@ -66,7 +66,7 @@ int main(int argc, const char **argv) {
     bool eoi = false;
 
     buffer *buf = new buffer(fp);
-    image::PPM *ppm = nullptr;
+    image::BMP *bmp = nullptr;
 
     while (!eoi) {
         uint8_t byte1 = buf->read_byte();
@@ -98,7 +98,7 @@ int main(int argc, const char **argv) {
                 ht = buf->read_bytes<size_t>(2);
                 wd = buf->read_bytes<size_t>(2);
 
-                ppm = new image::PPM(ht, wd, dest);
+                bmp = new image::BMP(ht, wd);
 
                 uint8_t cnt = (uint8_t)buf->read_byte();
                 for (int i = 0; i < (int)cnt; ++i) {
@@ -135,19 +135,19 @@ int main(int argc, const char **argv) {
                     assert(th < 4);
                     bytes++;
 
-                    std::vector<uint8_t> codeword(16);
                     std::vector<std::vector<uint8_t>> symbol(16);
 
-                    for (int i = 0; i < 16; ++i) 
-                        codeword[i] = buf->read_byte();
+                    for (int i = 0; i < 16; ++i) {
+                        uint8_t codeword = buf->read_byte();
+                        symbol[i].resize(codeword);
+                    }
                     
                     bytes += 16;
                     for (int i = 0; i < 16; ++i) {
-                        symbol[i].resize(codeword[i]);
-                        for (int j = 0; j < codeword[i]; ++j)
+                        for (int j = 0; j < (int)symbol[i].size(); ++j)
                             symbol[i][j] = buf->read_byte();
 
-                        bytes += codeword[i];
+                        bytes += (int)symbol[i].size();
                     }
 
                     // for (int i = 0; i < 16; ++i) {
@@ -158,8 +158,8 @@ int main(int argc, const char **argv) {
                         // fprintf(stderr, "\n");
                     // }
 
-                    if (tc) ac[th] = huffman::decoder(codeword, symbol);
-                    else    dc[th] = huffman::decoder(codeword, symbol);
+                    if (tc) ac[th] = huffman::decoder(symbol);
+                    else    dc[th] = huffman::decoder(symbol);
                 }
                 break;
             }
@@ -304,7 +304,7 @@ int main(int argc, const char **argv) {
                             }
                         }
 
-                        ppm->add_block(row * (vmax * 8), col * (hmax * 8), Y, Cb, Cr);
+                        bmp->add_block(row * (vmax * 8), col * (hmax * 8), Y, Cb, Cr);
                     }
                 }
 
@@ -381,6 +381,8 @@ int main(int argc, const char **argv) {
     }
 
     fclose(fp);
+    bmp->write(dest);
+    delete bmp;
 
     return 0;
 }

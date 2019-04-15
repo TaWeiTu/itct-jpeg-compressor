@@ -21,6 +21,16 @@ pixel::pixel(int16_t y, int16_t cb, int16_t cr): y(y), cb(cb), cr(cr) {
     b = (uint8_t)b_;
 }
 
+bool pixel::operator==(const pixel &rhs) const {
+    return r == rhs.r && g == rhs.g && b == rhs.b;
+}
+
+bool pixel::operator<(const pixel &rhs) const {
+    return (r < rhs.r) ||
+           (r == rhs.r && g < rhs.g) ||
+           (r == rhs.r && g == rhs.g && b < rhs.b);
+}
+
 image::PPM::PPM(): fp(nullptr) {}
 
 image::PPM::PPM(size_t ht, size_t wd, const char *filename): ht(ht), wd(wd), rptr(0), cptr(0) {
@@ -68,4 +78,75 @@ void image::PPM::add_block(size_t topmost, size_t leftmost,
             add_pixel(topmost + i, leftmost + j, pixel(Y[i][j], Cb[i][j], Cr[i][j]));
         }
     }
+}
+
+image::BMP::BMP() {}
+
+image::BMP::BMP(size_t ht, size_t wd): ht(ht), wd(wd) {
+    pix.resize(ht, std::vector<pixel>(wd));
+}
+
+void image::BMP::add_pixel(size_t r, size_t c, pixel px) {
+    pix[r][c] = px; 
+}
+
+void image::BMP::add_block(size_t topmost, size_t leftmost, 
+                           const std::vector<std::vector<int16_t>> &Y,
+                           const std::vector<std::vector<int16_t>> &Cb,
+                           const std::vector<std::vector<int16_t>> &Cr) {
+    
+    for (size_t i = 0; i < Y.size(); ++i) {
+        for (size_t j = 0; j < Y.size(); ++j) {
+            if (topmost + i >= ht || leftmost + j >= wd) continue;
+            add_pixel(topmost + i, leftmost + j, pixel(Y[i][j], Cb[i][j], Cr[i][j]));
+        }
+    }
+}
+
+void image::BMP::write(const char *filename) {
+    FILE *fp = fopen(filename, "wb"); 
+    if (!fp) { 
+        fprintf(stderr, "[Error] Can't write BMP\n");
+        exit(1);
+    }
+
+    size_t padded = (3 * wd + 3) / 4 * 4;
+    size_t size = 14 + 12 + ht * padded;
+    size_t offset = 14 + 12;
+    uint8_t byte;
+
+#define WRITE(b) do { byte = b; fwrite(&byte, 1, 1, fp); } while (false)
+
+    // Bitmap file header
+    WRITE(0x42); WRITE(0x4D);
+    WRITE(size & 255); WRITE(size >> 8 & 255); WRITE(size >> 16 & 255); WRITE(size >> 24 & 255);
+    WRITE(0x00); WRITE(0x00); WRITE(0x00); WRITE(0x00);
+    WRITE(offset & 255); WRITE(offset >> 8 & 255); WRITE(offset >> 16 & 255); WRITE(offset >> 24 & 255);
+
+    // DIB header
+    WRITE(0x0C); WRITE(0x00); WRITE(0x00); WRITE(0x00);
+    WRITE(wd & 255); WRITE(wd >> 8 & 255);
+    WRITE(ht & 255); WRITE(ht >> 8 & 255);
+    WRITE(0x01); WRITE(0x00);
+    WRITE(0x18); WRITE(0x00);
+
+
+    for (int i = (int)ht - 1; i >= 0; --i) {
+        size_t bytes = 0;
+        for (int j = 0; j < (int)wd; ++j) {
+            WRITE(pix[i][j].b);
+            WRITE(pix[i][j].g);
+            WRITE(pix[i][j].r);
+            bytes += 3;
+        }
+
+        while (bytes < padded) {
+            WRITE(0x00);
+            bytes++;
+        }
+    }
+
+    fclose(fp);
+
+
 }

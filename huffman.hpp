@@ -17,15 +17,18 @@ namespace huffman {
         std::map<std::pair<int, uint8_t>, uint8_t> maps;
 
         decoder();
-        decoder(const std::vector<uint8_t> &, 
-                const std::vector<std::vector<uint8_t>> &);
+        decoder(const std::vector<std::vector<uint8_t>> &);
 
         std::vector<uint8_t> operator()(const std::vector<uint8_t> &);
         uint8_t next(buffer *);
     };
 
     struct encoder {
-        // TODO
+        int code[256];
+        uint8_t leng[256];
+
+        encoder();
+        encoder(const std::vector<size_t> &);
     };
 }
 
