@@ -13,25 +13,6 @@
 #include "parse.hpp"
 #include "zigzag.hpp"
 
-#define SOI 0xD8
-#define SOF 0xC0
-#define DHT 0xC4
-#define DQT 0xDB
-#define DRI 0xDD
-#define SOS 0xDA
-#define APP 0xE0
-#define COM 0xFE
-#define EOI 0xD9
-
-#define RST0 0xD0
-#define RST1 0xD1
-#define RST2 0xD2
-#define RST3 0xD3
-#define RST4 0xD4
-#define RST5 0xD5
-#define RST6 0xD6
-#define RST7 0xD7
-
 
 // TODO: Deal with DRI
 
@@ -58,7 +39,7 @@ int main(int argc, const char **argv) {
     bool eoi = false;
 
     buffer *buf = new buffer(fp);
-    image::base *img = nullptr;
+    image *img = nullptr;
 
     while (!eoi) {
         uint8_t byte1 = buf->read_byte();
@@ -95,9 +76,9 @@ int main(int argc, const char **argv) {
                 wd = buf->read_bytes<size_t>(2);
 
                 if (args["format"] == "bmp")
-                    img = new image::BMP(ht, wd);
+                    img = new BMP(ht, wd);
                 else
-                    img = new image::PPM(ht, wd);
+                    img = new PPM(ht, wd);
 
                 uint8_t cnt = (uint8_t)buf->read_byte();
                 for (int i = 0; i < (int)cnt; ++i) {

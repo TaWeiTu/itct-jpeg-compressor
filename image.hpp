@@ -17,39 +17,37 @@ struct pixel {
     pixel(int16_t, int16_t, int16_t);
 };
 
-namespace image {
+struct image {
+    size_t ht, wd;
+    std::vector<std::vector<pixel>> pix;
 
-    struct base {
-        size_t ht, wd;
-        std::vector<std::vector<pixel>> pix;
+    image() = default;
+    image(size_t, size_t);
+    virtual ~image() = default;
 
-        base() = default;
-        base(size_t, size_t);
-        virtual ~base() = default;
+    virtual void write(const char*) const {}
+    virtual void read(const char*) {};
+    void add_pixel(size_t, size_t, pixel);
+    void add_block(size_t, size_t, const std::vector<std::vector<int16_t>> &,
+                                   const std::vector<std::vector<int16_t>> &,
+                                   const std::vector<std::vector<int16_t>> &);
+};
 
-        virtual void write(const char*) const {}
-        void add_pixel(size_t, size_t, pixel);
-        void add_block(size_t, size_t, const std::vector<std::vector<int16_t>> &,
-                                       const std::vector<std::vector<int16_t>> &,
-                                       const std::vector<std::vector<int16_t>> &);
-    };
+struct PPM: image {
+    using image::image;
+    ~PPM() {}
 
-    struct PPM: base {
-        using base::base;
-        ~PPM() {}
+    void write(const char*) const;
+    void read(const char*);
+};
 
-        void write(const char*) const;
-    };
+struct BMP: image {
+    using image::image; 
+    ~BMP() {}
 
-    struct BMP: base {
-        using base::base; 
-        ~BMP() {}
+    void write(const char*) const;
+    void read(const char*);
+};
 
-        void write(const char*) const;
-    };
-
-    // PPM *read(const char *);
-    // BMP *read(const char *);
-}
 
 #endif
