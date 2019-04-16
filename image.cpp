@@ -1,6 +1,9 @@
 #include "image.hpp"
 
 
+uint8_t byte_;
+#define WRITE(b) do { byte_ = b; fwrite(&byte_, 1, 1, fp); } while (false)
+
 pixel::pixel() {}
 
 pixel::pixel(uint8_t r, uint8_t g, uint8_t b): r(r), g(g), b(b) {
@@ -22,86 +25,49 @@ pixel::pixel(int16_t y, int16_t cb, int16_t cr): y(y), cb(cb), cr(cr) {
     b = (uint8_t)b_;
 }
 
-bool pixel::operator==(const pixel &rhs) const {
-    return r == rhs.r && g == rhs.g && b == rhs.b;
-}
-
-bool pixel::operator<(const pixel &rhs) const {
-    return (r < rhs.r) ||
-           (r == rhs.r && g < rhs.g) ||
-           (r == rhs.r && g == rhs.g && b < rhs.b);
-}
-
-image::PPM::PPM(): fp(nullptr) {}
-
-image::PPM::PPM(size_t ht, size_t wd, const char *filename): ht(ht), wd(wd), rptr(0), cptr(0) {
+image::base::base(size_t ht, size_t wd): ht(ht), wd(wd) {
     pix.resize(ht, std::vector<pixel>(wd));
-    filled.resize(ht, std::vector<bool>(wd));
-    fp = fopen(filename, "wb");
+}
 
+void image::base::add_pixel(size_t r, size_t c, pixel px) {
+    pix[r][c] = px; 
+}
+
+void image::base::add_block(size_t topmost, size_t leftmost, 
+                           const std::vector<std::vector<int16_t>> &Y,
+                           const std::vector<std::vector<int16_t>> &Cb,
+                           const std::vector<std::vector<int16_t>> &Cr) {
+    
+    for (size_t i = 0; i < Y.size(); ++i) {
+        for (size_t j = 0; j < Y.size(); ++j) {
+            if (topmost + i >= ht || leftmost + j >= wd) continue;
+            pixel px(Y[i][j], Cb[i][j], Cr[i][j]);
+            add_pixel(topmost + i, leftmost + j, px);
+        }
+    }
+}
+
+void image::PPM::write(const char *filename) const {
+    FILE *fp = fopen(filename, "rb");
     if (!fp) {
-        fprintf(stderr, "[Error] Can't write PPM.\n");
+        fprintf(stderr, "[Error] Unable to open file %s\n", filename);
         exit(1);
     }
 
     fprintf(fp, "P6\n");
-    fprintf(fp, "%d %d\n", (int)201, (int)201);
+    fprintf(fp, "%d %d\n", (int)wd, (int)ht);
     fprintf(fp, "255\n");
-}
 
-void image::PPM::add_pixel(size_t r, size_t c, pixel px) {
-    pix[r][c] = px; 
-    filled[r][c] = true;
-    while ((cptr < wd && rptr < ht) && filled[rptr][cptr]) {
-        fwrite(&(pix[rptr][cptr].r), 1, 1, fp);
-        fwrite(&(pix[rptr][cptr].g), 1, 1, fp);
-        fwrite(&(pix[rptr][cptr].b), 1, 1, fp);
-
-        if (++cptr == wd) {
-            cptr = 0;
-            rptr++;
+    for (int i = 0; i < (int)ht; ++i) {
+        for (int j = 0; j < (int)wd; ++j) {
+            WRITE(pix[i][j].r);
+            WRITE(pix[i][j].g);
+            WRITE(pix[i][j].b);
         }
     }
 }
 
-void image::PPM::add_block(size_t topmost, size_t leftmost, 
-                           const std::vector<std::vector<int16_t>> &Y,
-                           const std::vector<std::vector<int16_t>> &Cb,
-                           const std::vector<std::vector<int16_t>> &Cr) {
-    
-    for (size_t i = 0; i < Y.size(); ++i) {
-        for (size_t j = 0; j < Y.size(); ++j) {
-            if (topmost + i >= ht || leftmost + j >= wd) continue;
-            pixel px(Y[i][j], Cb[i][j], Cr[i][j]);
-            add_pixel(topmost + i, leftmost + j, px);
-        }
-    }
-}
-
-image::BMP::BMP() {}
-
-image::BMP::BMP(size_t ht, size_t wd): ht(ht), wd(wd) { pix.resize(ht, std::vector<pixel>(wd));
-}
-
-void image::BMP::add_pixel(size_t r, size_t c, pixel px) {
-    pix[r][c] = px; 
-}
-
-void image::BMP::add_block(size_t topmost, size_t leftmost, 
-                           const std::vector<std::vector<int16_t>> &Y,
-                           const std::vector<std::vector<int16_t>> &Cb,
-                           const std::vector<std::vector<int16_t>> &Cr) {
-    
-    for (size_t i = 0; i < Y.size(); ++i) {
-        for (size_t j = 0; j < Y.size(); ++j) {
-            if (topmost + i >= ht || leftmost + j >= wd) continue;
-            pixel px(Y[i][j], Cb[i][j], Cr[i][j]);
-            add_pixel(topmost + i, leftmost + j, px);
-        }
-    }
-}
-
-void image::BMP::write(const char *filename) {
+void image::BMP::write(const char *filename) const {
     FILE *fp = fopen(filename, "wb"); 
     if (!fp) { 
         fprintf(stderr, "[Error] Can't write BMP\n");
@@ -115,9 +81,6 @@ void image::BMP::write(const char *filename) {
     size_t padded = (3 * wd + 3) / 4 * 4;
     size_t size = 14 + 12 + ht * padded;
     size_t offset = 14 + 12;
-    uint8_t byte;
-
-#define WRITE(b) do { byte = b; fwrite(&byte, 1, 1, fp); } while (false)
 
     // Bitmap file header
     WRITE(0x42); WRITE(0x4D);
@@ -152,6 +115,29 @@ void image::BMP::write(const char *filename) {
     }
 
     fclose(fp);
-
-
 }
+
+/* image::PPM *image::read(const char *filename) {
+    FILE *fp = fopen(filename, "rb"); 
+    if (!fp) {
+        fprintf(stderr, "[Error] Unable to read file %s\n", filename);
+        exit(1);
+    }
+
+    char header[20];
+    int maxval, ht, wd;
+    fscanf("%s\n%d %d\n%d\n", header, &wd, &ht, &maxval);
+
+    PPM *ppm = new PPM(wd, ht);
+    ppm->pix.resize(ht, std::vector<pixel>(wd));
+
+    for (int i = 0; i < (int)ht; ++i) {
+        for (int j = 0; j < (int)wd; ++j) {
+            uint8_t r = (uint8_t)fgetc(fp);
+            uint8_t g = (uint8_t)fgetc(fp);
+            uint8_t b = (uint8_t)fgetc(fp);
+            ppm->pix[i][j] = pixel(r, g, b);
+        }
+    }
+    return ppm;
+} */

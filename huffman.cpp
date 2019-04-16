@@ -1,10 +1,6 @@
 #include "huffman.hpp"
 
 
-huffman::decoder::decoder() {
-    maps.clear();
-}
-
 huffman::decoder::decoder(const std::vector<std::vector<uint8_t>> &symbol) {
     maps.clear();
     int mask = 0;
@@ -37,7 +33,6 @@ uint8_t huffman::decoder::next(buffer *buf) {
     exit(1);
 }
 
-huffman::encoder::encoder() {}
 
 // huffman::encoder(const std::vector<size_t> &freq) {
     // std::priority_queue<std::pair<size_t, int>, std::vector<std::pair<size_t, int>>, std::greater<std::pair<size_t, int>>> pq;

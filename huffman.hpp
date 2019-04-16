@@ -16,7 +16,7 @@ namespace huffman {
     struct decoder {
         std::map<std::pair<int, uint8_t>, uint8_t> maps;
 
-        decoder();
+        decoder() = default;
         decoder(const std::vector<std::vector<uint8_t>> &);
 
         std::vector<uint8_t> operator()(const std::vector<uint8_t> &);
@@ -27,7 +27,7 @@ namespace huffman {
         int code[256];
         uint8_t leng[256];
 
-        encoder();
+        encoder() = default;
         encoder(const std::vector<size_t> &);
     };
 }

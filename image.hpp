@@ -15,44 +15,41 @@ struct pixel {
     pixel();
     pixel(uint8_t, uint8_t, uint8_t);
     pixel(int16_t, int16_t, int16_t);
-
-    bool operator==(const pixel &) const;
-    bool operator<(const pixel &) const;
 };
 
 namespace image {
 
-    struct PPM {
-        size_t ht, wd, rptr, cptr;
-        std::vector<std::vector<pixel>> pix;
-        std::vector<std::vector<bool>> filled;
-        FILE *fp;
-
-        PPM();
-        PPM(size_t, size_t, const char *);
-
-        void add_pixel(size_t, size_t, pixel);
-        void add_block(size_t, size_t, const std::vector<std::vector<int16_t>> &,
-                                       const std::vector<std::vector<int16_t>> &,
-                                       const std::vector<std::vector<int16_t>> &);
-    };
-
-    struct BMP {
+    struct base {
         size_t ht, wd;
         std::vector<std::vector<pixel>> pix;
 
-        BMP();
-        BMP(size_t, size_t);
+        base() = default;
+        base(size_t, size_t);
+        virtual ~base() = default;
 
-        void write(const char *);
+        virtual void write(const char*) const {}
         void add_pixel(size_t, size_t, pixel);
         void add_block(size_t, size_t, const std::vector<std::vector<int16_t>> &,
                                        const std::vector<std::vector<int16_t>> &,
                                        const std::vector<std::vector<int16_t>> &);
     };
 
-    PPM *read_PPM(const char *);
-    BMP *read_BMP(const char *);
+    struct PPM: base {
+        using base::base;
+        ~PPM() {}
+
+        void write(const char*) const;
+    };
+
+    struct BMP: base {
+        using base::base; 
+        ~BMP() {}
+
+        void write(const char*) const;
+    };
+
+    // PPM *read(const char *);
+    // BMP *read(const char *);
 }
 
 #endif

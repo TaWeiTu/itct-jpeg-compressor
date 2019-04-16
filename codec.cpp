@@ -291,7 +291,13 @@ void IDCT(std::vector<std::vector<int16_t>> &x) {
     }
 
     for (int i = 0; i < 8; ++i) {
-        for (int j = 0; j < 8; ++j)
+        for (int j = 0; j < 8; ++j) {
             x[i][j] = (int16_t)y[i][j];
+#ifdef DEBUG
+            if (x[i][j] < 0 || x[i][j] > 255) {
+                fprintf(stderr, "xij = %d\n", (int)x[i][j]);
+            }
+#endif
+        }
     }
 }

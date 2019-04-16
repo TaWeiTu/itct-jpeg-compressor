@@ -10,6 +10,7 @@
 #include "codec.hpp"
 #include "image.hpp"
 #include "huffman.hpp"
+#include "parse.hpp"
 #include "zigzag.hpp"
 
 #define SOI 0xD8
@@ -36,25 +37,16 @@
 
 
 int main(int argc, const char **argv) {
-    if (argc < 2) {
-        fprintf(stderr, "[Usage] ./decode source [destination]\n");
-        exit(1);
-    }
+    std::map<std::string, std::string> args = parse(argc, argv);
 
-    FILE *fp = fopen(argv[1], "rb");
+    FILE *fp = fopen(args["src"].c_str(), "rb");
 
     if (!fp) {
         fprintf(stderr, "[Error] Image to be decoded not found\n");
         exit(1);
     }
 
-    char *dest;
-
-    if (argc >= 3) {
-        dest = (char*)argv[2];
-    } else {
-        dest = (char*)"output.bmp";
-    }
+    const char *dest = args["dest"].c_str();
 
     static uint8_t qt[6], fh[6], fv[6], dcid[6], acid[6];
     huffman::decoder dc[4], ac[4];
@@ -66,7 +58,7 @@ int main(int argc, const char **argv) {
     bool eoi = false;
 
     buffer *buf = new buffer(fp);
-    image::BMP *bmp = nullptr;
+    image::base *img = nullptr;
 
     while (!eoi) {
         uint8_t byte1 = buf->read_byte();
@@ -102,7 +94,10 @@ int main(int argc, const char **argv) {
                 ht = buf->read_bytes<size_t>(2);
                 wd = buf->read_bytes<size_t>(2);
 
-                bmp = new image::BMP(ht, wd);
+                if (args["format"] == "bmp")
+                    img = new image::BMP(ht, wd);
+                else
+                    img = new image::PPM(ht, wd);
 
                 uint8_t cnt = (uint8_t)buf->read_byte();
                 for (int i = 0; i < (int)cnt; ++i) {
@@ -316,7 +311,7 @@ int main(int argc, const char **argv) {
                             }
                         }
 
-                        bmp->add_block(row * (vmax * 8), col * (hmax * 8), Y, Cb, Cr);
+                        img->add_block(row * (vmax * 8), col * (hmax * 8), Y, Cb, Cr);
                     }
                 }
 
@@ -386,7 +381,9 @@ int main(int argc, const char **argv) {
                     fprintf(stderr, "[Error] SOI not found\n");
                     exit(1);
                 }
+#ifdef DEBUG
                 fprintf(stderr, "[Debug] EOI\n");
+#endif
                 // end of image
                 eoi = true;
                 break;
@@ -399,8 +396,8 @@ int main(int argc, const char **argv) {
     }
 
     fclose(fp);
-    bmp->write(dest);
-    delete bmp;
+    img->write(dest);
+    delete img;
 
     return 0;
 }
