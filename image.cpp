@@ -13,6 +13,7 @@ pixel::pixel(int16_t y, int16_t cb, int16_t cr): y(y), cb(cb), cr(cr) {
     int16_t r_ = (int16_t)(y + 1.402 * cr + 128);
     int16_t g_ = (int16_t)(y - 0.344136 * cb - 0.714136 * cr + 128);
     int16_t b_ = (int16_t)(y + 1.772 * cb + 128);
+    // fprintf(stderr, "r = %d g = %d b = %d\n", (int)r_, (int)g_, (int)b_);
     r_ = std::clamp(r_, (int16_t)0, (int16_t)255);
     g_ = std::clamp(g_, (int16_t)0, (int16_t)255);
     b_ = std::clamp(b_, (int16_t)0, (int16_t)255);
@@ -44,11 +45,7 @@ image::PPM::PPM(size_t ht, size_t wd, const char *filename): ht(ht), wd(wd), rpt
     }
 
     fprintf(fp, "P6\n");
-    char buf[20];
-    sprintf(buf, "%d", (int)wd);
-    fprintf(fp, "%s ", buf);
-    sprintf(buf, "%d", (int)ht);
-    fprintf(fp, "%s\n", buf);
+    fprintf(fp, "%d %d\n", (int)201, (int)201);
     fprintf(fp, "255\n");
 }
 
@@ -75,15 +72,15 @@ void image::PPM::add_block(size_t topmost, size_t leftmost,
     for (size_t i = 0; i < Y.size(); ++i) {
         for (size_t j = 0; j < Y.size(); ++j) {
             if (topmost + i >= ht || leftmost + j >= wd) continue;
-            add_pixel(topmost + i, leftmost + j, pixel(Y[i][j], Cb[i][j], Cr[i][j]));
+            pixel px(Y[i][j], Cb[i][j], Cr[i][j]);
+            add_pixel(topmost + i, leftmost + j, px);
         }
     }
 }
 
 image::BMP::BMP() {}
 
-image::BMP::BMP(size_t ht, size_t wd): ht(ht), wd(wd) {
-    pix.resize(ht, std::vector<pixel>(wd));
+image::BMP::BMP(size_t ht, size_t wd): ht(ht), wd(wd) { pix.resize(ht, std::vector<pixel>(wd));
 }
 
 void image::BMP::add_pixel(size_t r, size_t c, pixel px) {
@@ -98,7 +95,8 @@ void image::BMP::add_block(size_t topmost, size_t leftmost,
     for (size_t i = 0; i < Y.size(); ++i) {
         for (size_t j = 0; j < Y.size(); ++j) {
             if (topmost + i >= ht || leftmost + j >= wd) continue;
-            add_pixel(topmost + i, leftmost + j, pixel(Y[i][j], Cb[i][j], Cr[i][j]));
+            pixel px(Y[i][j], Cb[i][j], Cr[i][j]);
+            add_pixel(topmost + i, leftmost + j, px);
         }
     }
 }
@@ -109,6 +107,10 @@ void image::BMP::write(const char *filename) {
         fprintf(stderr, "[Error] Can't write BMP\n");
         exit(1);
     }
+
+#ifdef DEBUG
+    fprintf(stdout, "height = %d width = %d\n", (int)ht, (int)wd);
+#endif
 
     size_t padded = (3 * wd + 3) / 4 * 4;
     size_t size = 14 + 12 + ht * padded;
@@ -130,6 +132,9 @@ void image::BMP::write(const char *filename) {
     WRITE(0x01); WRITE(0x00);
     WRITE(0x18); WRITE(0x00);
 
+#ifdef DEBUG
+    fprintf(stdout, "padded = %d\n", (int)padded);
+#endif
 
     for (int i = (int)ht - 1; i >= 0; --i) {
         size_t bytes = 0;

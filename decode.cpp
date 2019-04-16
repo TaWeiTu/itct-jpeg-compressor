@@ -79,7 +79,9 @@ int main(int argc, const char **argv) {
 
         switch (byte2) {
             case SOI: {
+#ifdef DEBUG
                 fprintf(stderr, "[Debug] SOI\n");
+#endif
                 // start of image
                 soi = true;
                 break;
@@ -90,7 +92,9 @@ int main(int argc, const char **argv) {
                     fprintf(stderr, "[Error] SOI not found\n");
                     exit(1);
                 }
+#ifdef DEBUG
                 fprintf(stderr, "[Debug] SOF\n");
+#endif
                 // start of frame (baseline DCT)
                 // size_t leng = buf->read_bytes<size_t>(2);
                 // uint8_t prec = buf->read_bytes<uint8_t>(1);
@@ -122,7 +126,9 @@ int main(int argc, const char **argv) {
                     fprintf(stderr, "[Error] SOI not found\n");
                     exit(1);
                 }
+#ifdef DEBUG
                 fprintf(stderr, "[Debug] DHT\n");
+#endif
                 // TODO: store huffman tables
                 // define huffman tables
                 size_t leng = buf->read_bytes<size_t>(2);
@@ -169,7 +175,9 @@ int main(int argc, const char **argv) {
                     fprintf(stderr, "[Error] SOI not found\n");
                     exit(1);
                 }
+#ifdef DEBUG
                 fprintf(stderr, "[Debug] DQT\n");
+#endif
                 // TODO: store quantization tables
                 // define quantization tables
                 size_t leng = buf->read_bytes<size_t>(2);
@@ -200,7 +208,9 @@ int main(int argc, const char **argv) {
                     fprintf(stderr, "[Error] SOI not found\n");
                     exit(1);
                 }
+#ifdef DEBUG
                 fprintf(stderr, "[Debug] DRI\n");
+#endif
                 // define restart interval
                 buf->skip_bytes(2);
                 itvl = buf->read_bytes<size_t>(2);
@@ -212,7 +222,9 @@ int main(int argc, const char **argv) {
                     fprintf(stderr, "[Error] SOI not found\n");
                     exit(1);
                 }
+#ifdef DEBUG
                 fprintf(stderr, "[Debug] SOS\n");
+#endif
                 // start of scan
                 // size_t leng = buf->read_bytes<size_t>(2);
                 buf->skip_bytes(2);
@@ -310,8 +322,10 @@ int main(int argc, const char **argv) {
 
                 buf->flush();
 
+#ifdef DEBUG
                 fprintf(stderr, "fpos = %d flen = %d\n", (int)buf->fpos, (int)buf->flen);
                 fprintf(stderr, "done reading MCU\n");
+#endif
 
                 break;
             }
@@ -321,7 +335,9 @@ int main(int argc, const char **argv) {
                     fprintf(stderr, "[Error] SOI not found\n");
                     exit(1);
                 }
+#ifdef DEBUG
                 fprintf(stderr, "[Debug] APP\n");
+#endif
                 // size_t leng = buf->read_bytes<size_t>(2);
                 buf->skip_bytes(2);
                 uint64_t mark = buf->read_bytes<uint64_t>(5);
@@ -353,7 +369,9 @@ int main(int argc, const char **argv) {
                     fprintf(stderr, "[Error] SOI not found\n");
                     exit(1);
                 }
+#ifdef DEBUG
                 fprintf(stderr, "[Debug] COM\n");
+#endif
                 // comment
                 size_t leng = buf->read_bytes<size_t>(2);
 
