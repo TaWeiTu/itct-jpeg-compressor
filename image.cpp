@@ -46,6 +46,42 @@ void image::add_block(size_t topmost, size_t leftmost,
     }
 }
 
+std::vector<std::vector<int16_t>> image::Y_block(size_t topmost, size_t leftmost, size_t side) const {
+    std::vector<std::vector<int16_t>> block(side, std::vector<int16_t>(side));
+
+    for (size_t i = topmost, ci = 0; ci < side; ++i, ++ci) {
+        for (size_t j = leftmost, cj = 0; cj < side; ++j, ++cj) {
+            if (i < ht && j < wd)
+                block[ci][cj] = pix[i][j].y;
+        }
+    }
+    return block;
+}
+
+std::vector<std::vector<int16_t>> image::Cb_block(size_t topmost, size_t leftmost, size_t side) const {
+    std::vector<std::vector<int16_t>> block(side, std::vector<int16_t>(side));
+
+    for (size_t i = topmost, ci = 0; ci < side; ++i, ++ci) {
+        for (size_t j = leftmost, cj = 0; cj < side; ++j, ++cj) {
+            if (i < ht && j < wd)
+                block[ci][cj] = pix[i][j].cb;
+        }
+    }
+    return block;
+}
+
+std::vector<std::vector<int16_t>> image::Cr_block(size_t topmost, size_t leftmost, size_t side) const {
+    std::vector<std::vector<int16_t>> block(side, std::vector<int16_t>(side));
+
+    for (size_t i = topmost, ci = 0; ci < side; ++i, ++ci) {
+        for (size_t j = leftmost, cj = 0; cj < side; ++j, ++cj) {
+            if (i < ht && j < wd)
+                block[ci][cj] = pix[i][j].cr;
+        }
+    }
+    return block;
+}
+
 void PPM::write(const char *filename) const {
     FILE *fp = fopen(filename, "wb");
     if (!fp) {
@@ -64,6 +100,7 @@ void PPM::write(const char *filename) const {
             WRITE(pix[i][j].b);
         }
     }
+    fclose(fp);
 }
 
 void BMP::write(const char *filename) const {
@@ -138,6 +175,7 @@ void PPM::read(const char *filename) {
             pix[i][j] = pixel(r, g, b);
         }
     }
+    fclose(fp);
 } 
 
 void BMP::read(const char *filename) {

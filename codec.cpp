@@ -41,15 +41,18 @@ std::vector<std::vector<int16_t>> RLC::decode_block(huffman::decoder *huf, buffe
     return res;
 }
 
-std::vector<std::pair<uint8_t, int16_t>> encode_block(const std::vector<std::vector<int16_t>> &block) {
+std::vector<std::pair<uint8_t, int16_t>> RLC::encode_block(const std::vector<std::vector<int16_t>> &block) {
     std::vector<std::pair<uint8_t, int16_t>> code;
 
-    for (int i = 0, j = 0; i < 64; ) {
+    for (int i = 1, j = 0; i < 64; ) {
         for (j = i; j < 64 && block[zig[j]][zag[j]] == 0; ++j);
 
         if (j == 64) {
             code.emplace_back(0, 0);
             break;
+        } else if (j - i > 15) {
+            code.emplace_back(15, 0);
+            i += 16;
         } else {
             uint8_t leng = (uint8_t)(j - i);
             code.emplace_back(leng, block[zig[j]][zag[j]]);
@@ -76,12 +79,12 @@ quantizer::quantizer() {}
 
 quantizer::quantizer(const std::vector<std::vector<int>> &qtable): qtable(qtable) {}
 
-void quantizer::quantize(std::vector<std::vector<int16_t>> &tab) {
+void quantizer::quantize(std::vector<std::vector<float>> &tab) {
     static const int n = (int)tab.size();
 
     for (int i = 0; i < n; ++i) {
         for (int j = 0; j < n; ++j) 
-            tab[i][j] = (int16_t)(tab[i][j] / qtable[i][j]);
+            tab[i][j] = (int16_t)(tab[i][j] / (float)qtable[i][j] + 0.5);
     }
 }
 
@@ -105,10 +108,10 @@ static const float cosine[8][8] = {
     {1.00000f, -0.98079f, 0.92388f, -0.83147f, 0.70711f, -0.55557f, 0.38268f, -0.19509f}
 };
 
-void FDCT(std::vector<std::vector<int16_t>> &x) {
+std::vector<std::vector<float>> FDCT(std::vector<std::vector<int16_t>> &x) {
     static const float C0 = (float)(1. / sqrt(2));
     static const float Cu = 1.;
-    static float y[8][8];
+    std::vector<std::vector<float>> y(8, std::vector<float>(8));
 
     for (int i = 0; i < 8; ++i) {
         for (int j = 0; j < 8; ++j) {
@@ -196,11 +199,7 @@ void FDCT(std::vector<std::vector<int16_t>> &x) {
             y[i][j] = (float)(y[i][j] * 0.25 * (i == 0 ? C0 : Cu) * (j == 0 ? C0 : Cu));
         }
     }
-
-    for (int i = 0; i < 8; ++i) {
-        for (int j = 0; j < 8; ++j) 
-            x[i][j] = (int16_t)y[i][j];
-    }
+    return y;
 }
 
 void IDCT(std::vector<std::vector<int16_t>> &x) {
@@ -291,13 +290,33 @@ void IDCT(std::vector<std::vector<int16_t>> &x) {
     }
 
     for (int i = 0; i < 8; ++i) {
-        for (int j = 0; j < 8; ++j) {
-            x[i][j] = (int16_t)y[i][j];
-#ifdef DEBUG
-            if (x[i][j] < 0 || x[i][j] > 255) {
-                fprintf(stderr, "xij = %d\n", (int)x[i][j]);
-            }
-#endif
-        }
+        for (int j = 0; j < 8; ++j)
+            x[i][j] = (int16_t)(y[i][j] + 0.5);
     }
+}
+
+quantizer luminance() {
+    return quantizer({
+        {16, 11, 10, 16, 24, 40, 51, 61},
+        {12, 12, 14, 19, 26, 58, 60, 55},
+        {14, 13, 16, 24, 40, 67, 69, 56},
+        {14, 17, 22, 29, 51, 87, 80, 62},
+        {18, 22, 37, 56, 68, 109, 103, 77},
+        {24, 35, 55, 64, 81, 104, 113, 92},
+        {49, 64, 78, 87, 103, 121, 120, 101},
+        {72, 92, 95, 98, 112, 100, 103, 99} 
+    });
+}
+
+quantizer chrominance() {
+    return quantizer({
+        {17, 18, 24, 47, 99, 99, 99, 99},
+        {18, 21, 26, 66, 99, 99, 99, 99},
+        {24, 26, 56, 99, 99, 99, 99, 99},
+        {47, 66, 99, 99, 99, 99, 99, 99},
+        {99, 99, 99, 99, 99, 99, 99, 99},
+        {99, 99, 99, 99, 99, 99, 99, 99},
+        {99, 99, 99, 99, 99, 99, 99, 99},
+        {99, 99, 99, 99, 99, 99, 99, 99}
+    });
 }

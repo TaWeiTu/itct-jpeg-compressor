@@ -8,8 +8,9 @@
 
 #include "buffer.hpp"
 #include "codec.hpp"
-#include "image.hpp"
 #include "huffman.hpp"
+#include "image.hpp"
+#include "marker.hpp"
 #include "parse.hpp"
 #include "zigzag.hpp"
 
@@ -184,6 +185,8 @@ int main(int argc, const char **argv) {
                     fprintf(stderr, "[Error] SOI not found\n");
                     exit(1);
                 }
+                fprintf(stderr, "[Error] Not yet supported\n");
+                exit(1);
 #ifdef DEBUG
                 fprintf(stderr, "[Debug] DRI\n");
 #endif

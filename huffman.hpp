@@ -1,13 +1,15 @@
 #ifndef HUFFMAN_HPP_INCLUDED
 #define HUFFMAN_HPP_INCLUDED
 
+#include <algorithm>
 #include <cstdint>
 #include <cstdio>
+#include <cstring>
+#include <numeric>
 #include <map>
 #include <queue>
 #include <utility>
 #include <vector>
-
 #include "buffer.hpp"
 
 
@@ -24,11 +26,16 @@ namespace huffman {
     };
 
     struct encoder {
-        int code[256];
-        uint8_t leng[256];
+        int code[512];
+        size_t freq[512];
+        uint8_t leng[512];
 
-        encoder() = default;
+        encoder();
         encoder(const std::vector<size_t> &);
+
+        void add_freq(uint8_t, size_t);
+        void encode();
+        bool decodable() const;
     };
 }
 

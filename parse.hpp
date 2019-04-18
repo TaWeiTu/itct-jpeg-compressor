@@ -6,20 +6,22 @@
 #include <string>
 
 void usage() {
-    fprintf(stderr, "[Usage] ./decode [-f format] -s source [-d destination]\n");
+    fprintf(stderr, "[Usage] ./decode [-f format=bmp] -s source [-d destination=output.bmp]\n");
+    fprintf(stderr, "[Usage] ./encode [-f format=bmp] -s source [-d destination=output.bmp] [-p subsampling=1:1:1]\n");
     exit(1);
 }
 
 std::map<std::string, std::string> parse(int argc, const char **argv) {
     std::map<std::string, std::string> res = {
         {"dest", "output.bmp"},
-        {"format", "bmp"}
+        {"format", "bmp"},
     };
 
     static std::map<std::string, int> cmd = {
         {"-f", 1},
         {"-s", 2},
-        {"-d", 3}
+        {"-d", 3},
+        {"-p", 4}
     };
 
     for (int i = 1; i < argc; ++i) {
