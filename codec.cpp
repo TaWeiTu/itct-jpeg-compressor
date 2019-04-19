@@ -10,6 +10,9 @@ std::pair<uint8_t, int16_t> RLC::decode_pixel(huffman::decoder *huf, buffer *buf
     uint8_t r = res >> 4 & 15;
     uint8_t s = res & 15;
 
+    if (s == 0)
+        return std::make_pair(15, 0);
+
     uint16_t offset = buf->read_bits<uint16_t>(s);
     int16_t var = (int16_t)(offset >= (1 << (s - 1)) ? offset : -((1 << s) - offset - 1));
 
@@ -79,13 +82,15 @@ quantizer::quantizer() {}
 
 quantizer::quantizer(const std::vector<std::vector<int>> &qtable): qtable(qtable) {}
 
-void quantizer::quantize(std::vector<std::vector<float>> &tab) {
+std::vector<std::vector<int16_t>> quantizer::quantize(const std::vector<std::vector<float>> &tab) {
     static const int n = (int)tab.size();
+    std::vector<std::vector<int16_t>> res(n, std::vector<int16_t>(n));
 
     for (int i = 0; i < n; ++i) {
         for (int j = 0; j < n; ++j) 
-            tab[i][j] = (int16_t)(tab[i][j] / (float)qtable[i][j] + 0.5);
+            res[i][j] = (int16_t)(tab[i][j] / (float)qtable[i][j] + 0.5);
     }
+    return res;
 }
 
 void quantizer::dequantize(std::vector<std::vector<int16_t>> &tab) {

@@ -29,7 +29,7 @@ struct quantizer {
     std::vector<std::vector<int>> qtable;
     quantizer();
     quantizer(const std::vector<std::vector<int>> &);
-    void quantize(std::vector<std::vector<float>> &);
+    std::vector<std::vector<int16_t>> quantize(const std::vector<std::vector<float>> &);
     void dequantize(std::vector<std::vector<int16_t>> &);
 };
 

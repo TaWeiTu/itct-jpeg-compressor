@@ -10,3 +10,4 @@ log
 *.ppm
 *.bmp
 bmp_format
+*.txt

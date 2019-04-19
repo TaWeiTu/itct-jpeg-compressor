@@ -16,6 +16,7 @@
 
 
 // TODO: Deal with DRI
+//
 
 
 int main(int argc, const char **argv) {
@@ -141,8 +142,17 @@ int main(int argc, const char **argv) {
                         // fprintf(stderr, "\n");
                     // }
 
-                    if (tc) ac[th] = huffman::decoder(symbol);
-                    else    dc[th] = huffman::decoder(symbol);
+                    if (tc) 
+                        ac[th] = huffman::decoder(symbol);
+                    else    
+                        dc[th] = huffman::decoder(symbol);
+
+#ifdef DEBUG
+                    if (tc)
+                        fprintf(stderr, "Building ac huffman decoder with ID %d\n", th);
+                    else
+                        fprintf(stderr, "Building dc huffman decoder with ID %d\n", th);
+#endif
                 }
                 break;
             }

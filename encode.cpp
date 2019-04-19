@@ -25,8 +25,13 @@ int main(int argc, const char **argv) {
     fprintf(stderr, "vbk = %d hbk = %d\n", (int)vbk, (int)hbk);
 
     huffman::encoder huff[4];
+    quantizer qtz[2] = {luminance(), chrominance()};
     int acid[3] = {0, 1, 1};
     int dcid[3] = {2, 3, 3};
+    int qtid[3] = {0, 1, 1};
+
+    using block_type = std::array<std::vector<std::vector<int16_t>>, 3>;
+    std::vector<std::vector<block_type>> blk(vbk, std::vector<block_type>(hbk));
 
     for (int i = 0; i < (int)vbk; ++i) {
         for (int j = 0; j < (int)hbk; ++j) {
@@ -36,7 +41,7 @@ int main(int argc, const char **argv) {
                 img->Cr_block(i * 8, j * 8, 8)
             };
             for (int c = 0; c < 3; ++c) {
-                FDCT(block[c]);
+                blk[i][j][c] = qtz[qtid[c]].quantize(FDCT(block[c]));
                 std::vector<std::pair<uint8_t, int16_t>> RLP = RLC::encode_block(block[c]);
                 for (int k = 0; k < (int)RLP.size(); ++k) {
                     uint8_t r = RLP[k].first;
@@ -49,7 +54,6 @@ int main(int argc, const char **argv) {
                     huff[acid[c]].add_freq((uint8_t)(r << 4 | s), 1);
                 }
             }
-
         }
     }
 

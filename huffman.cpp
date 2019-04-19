@@ -1,5 +1,8 @@
 #include "huffman.hpp"
 
+#ifdef DEBUG
+FILE *huffp = fopen("huffman2.txt", "w");
+#endif
 
 huffman::decoder::decoder(const std::vector<std::vector<uint8_t>> &symbol) {
     maps.clear();
@@ -11,6 +14,12 @@ huffman::decoder::decoder(const std::vector<std::vector<uint8_t>> &symbol) {
         }
         mask <<= 1;
     }
+
+#ifdef DEBUG
+    for (auto it : maps) {
+        fprintf(huffp, "%d (%d) -> %d\n", it.first.first, (int)it.first.second, (int)it.second);
+    }
+#endif
 }
 
 uint8_t huffman::decoder::next(buffer *buf) {
@@ -43,80 +52,124 @@ void huffman::encoder::add_freq(uint8_t sym, size_t f = 1) {
     freq[sym] += f;
 }
 
+// referenced from https://github.com/kornelski/jpeg-compressor/blob/master/jpge.cpp
+void huffman::encoder::calculate(std::vector<std::pair<size_t, uint8_t>> &symb) {
+    if ((int)symb.size() == 1) {
+        symb[0].first = 1;
+        return;
+    }
+
+    symb[0].first += symb[1].first;
+    int n = (int)symb.size();
+    int root = 0, leaf = 2;
+
+    for (int i = 1; i < n - 1; ++i) {
+        if (leaf >= n || symb[root].first < symb[leaf].first) {
+            symb[i].first = symb[root].first;
+            symb[root++].first = i; 
+        } else {
+            symb[i].first += symb[leaf++].first;
+        }
+        if (leaf >= n || (root < i && symb[root].first < symb[leaf].first)) {
+            symb[i].first += symb[root].first;
+            symb[root++].first = i;
+        } else {
+            symb[i].first += symb[leaf++].first;
+        }
+    }
+    symb[n - 2].first = 0;
+    for (int i = n - 3; i >= 0; --i) {
+        symb[i].first = symb[symb[i].first].first + 1;
+    }
+
+    int avbl = 1, used = 0, dep = 0, nxt = n - 1;
+    root = n - 2;
+
+    while (avbl > 0) {
+        while (root >= 0 && (int)symb[root].first == dep) {
+            used++;
+            root--;
+        }
+        while (avbl > used) {
+            symb[nxt--].first = dep;
+            avbl--;
+        }
+        avbl = 2 * used;
+        dep++;
+        used = 0;
+    }
+}
+
+void huffman::encoder::ensure(std::vector<size_t> &cnt, const size_t limit) {
+    for (int i = (int)limit + 1; i < 256; ++i)
+        cnt[limit] += cnt[i];
+
+    size_t sum = 0;
+    for (int i = (int)limit; i > 0; --i) 
+        sum += ((size_t)cnt[i] << (limit - i));
+
+    while (sum != (1ull << limit)) {
+        cnt[limit]--;
+        for (int i = (int)limit - 1; i > 0; --i) {
+            if (cnt[i]) {
+                cnt[i]--;
+                cnt[i + 1] += 2;
+                break;
+            }
+        }
+        sum--;
+    }
+}
+
+
 void huffman::encoder::encode() {
-    size_t sum = std::accumulate(freq, freq + 256, 0);
-    std::vector<uint8_t> s;
+    std::vector<std::pair<size_t, uint8_t>> symb = {{1, 0}};
     for (int i = 0; i < 256; ++i) {
         if (freq[i] > 0)
-            s.push_back((uint8_t)i);
+            symb.emplace_back(freq[i], i);
     }
-
-    std::sort(s.begin(), s.end(), [&](int i, int j) {
-        return freq[i] > freq[j];
-    });
-
-    static const int limit = 16;
-
-    for (int i = 0; i < (int)s.size(); ++i) {
-        if (freq[s[i]] * 1ll * (1 << limit) <= sum)
-            freq[s[i]] = sum / (1 << limit);
-    }
-
-    std::priority_queue<std::pair<int, int>,
-                        std::vector<std::pair<int, int>>,
-                        std::greater<std::pair<int, int>>> pq;
-
-    for (int i = 0; i < (int)s.size(); ++i) 
-        pq.emplace(freq[s[i]], s[i]);
     
-    std::vector<int> lc(512, -1), rc(512, -1);
-    int aux = 256;
-    while ((int)pq.size() > 1) {
-        int x = pq.top().second; pq.pop();
-        int y = pq.top().second; pq.pop();
+    std::sort(symb.begin(), symb.end());
+    calculate(symb);
 
-        lc[aux] = x;
-        rc[aux] = y;
-        freq[aux] = x + y;
-        pq.emplace(freq[aux], aux);
-        aux++;
-    }
+    // for (int i = 0; i < (int)symb.size(); ++i)
+        // fprintf(stderr, "symb[i].first = %d\n", (int)symb[i].first);
 
-    std::queue<int> q;
-    q.push(aux - 1);
-    while (!q.empty()) {
-        int x = q.front(); q.pop();
-        if (~lc[x]) {
-            leng[lc[x]] = (uint8_t)(leng[x] + 1);
-            code[lc[x]] = code[x] << 1;
-            q.push(lc[x]);
-        }
-        if (~rc[x]) {
-            leng[rc[x]] = (uint8_t)(leng[x] + 1);
-            code[rc[x]] = code[x] << 1 | 1;
-            q.push(rc[x]);
+    std::vector<size_t> cnt(256, 0);
+    for (int i = 0; i < (int)symb.size(); ++i)
+        cnt[symb[i].first]++;
+
+    static const size_t limit = 16;
+    if ((int)symb.size() > 1)
+        ensure(cnt, limit);
+
+    std::vector<uint8_t> v;
+    for (int i = (int)symb.size() - 1; i >= 1; --i) 
+        v.push_back((uint8_t)(symb[i].second - 1));
+
+    for (int i = (int)limit; i >= 1; --i) {
+        if (cnt[i] > 0) {
+            cnt[i] -= 1;
+            break;
         }
     }
 
-    for (int i = 0; i < 256; ++i) {
-        assert(leng[i] <= limit);
-        if (freq[i] > 0) {
-            fprintf(stderr, "symbol = %d leng = %d code = %d\n", (int)i, (int)leng[i], code[i]);
+    int mask = 0;
+    for (int i = 1, j = 0; i <= (int)limit; ++i) {
+        for (int k = 0; k < (int)cnt[i]; ++k, ++j) {
+            tab[i - 1].push_back(v[j]);
+            code[symb[j].second] = mask++;
+            leng[symb[j].second] = (uint8_t)i;
         }
+        mask <<= 1;
     }
-
-    fprintf(stderr, "end\n");
-
-#ifdef DEBUG
-    assert(decodable());
-#endif
 }
 
 bool huffman::encoder::decodable() const {
     for (int i = 0; i < 256; ++i) {
         if (freq[i] == 0) continue;
         for (int j = 0; j < 256; ++j) {
-            if (freq[j] == 0);
+            if (freq[j] == 0) continue;
             if (i == j) continue;
             if (leng[i] == leng[j] && code[i] == code[j])
                 return false;
