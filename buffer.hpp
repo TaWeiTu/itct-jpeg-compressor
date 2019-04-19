@@ -31,6 +31,15 @@ struct buffer {
     inline void start_read_mcu();
     inline bool read_mcu() const;
     inline void flush();
+
+    inline void write_byte(uint8_t);
+
+    template <typename dtype = uint8_t>
+    inline void write_bits(dtype, uint8_t);
+
+    template <typename dtype = uint8_t>
+    inline void write_bytes(dtype, uint8_t);
+
 };
 
 inline buffer::buffer(): fp(nullptr), start_mcu(false) {}
@@ -98,6 +107,27 @@ inline bool buffer::read_mcu() const {
 
 inline void buffer::flush() {
     while (bpos != 7) read_bits(1);
+}
+
+template <typename dtype = uint8_t>
+inline void buffer::write_bits(dtype data, uint8_t s) {
+    for (int i = (int)s - 1; i >= 0; --i) {
+        cbyte = (uint8_t)(cbyte << 1 | (data >> i & 1));
+        if (--bpos < 0) {
+            fwrite(&cbyte, 1, 1, fp);
+            bpos = 7;
+            cbyte = 0;
+        }
+    }
+}
+
+template <typename dtype = uint8_t>
+inline void buffer::write_bytes(dtype data, uint8_t s) {
+    write_bits(data, (uint8_t)(s * 8));
+}
+
+inline void buffer::write_byte(uint8_t data) {
+    write_bits(data, 8);
 }
 
 #endif

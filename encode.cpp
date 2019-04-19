@@ -42,23 +42,21 @@ int main(int argc, const char **argv) {
             };
             for (int c = 0; c < 3; ++c) {
                 blk[i][j][c] = qtz[qtid[c]].quantize(FDCT(block[c]));
-                std::vector<std::pair<uint8_t, int16_t>> RLP = RLC::encode_block(block[c]);
+                std::vector<std::pair<uint8_t, int16_t>> RLP = RLC::encode_block(blk[i][j][c]);
                 for (int k = 0; k < (int)RLP.size(); ++k) {
                     uint8_t r = RLP[k].first;
                     int16_t v = RLP[k].second;
                     uint8_t s = (v == 0 ? 0 : (uint8_t)(32 - __builtin_clz(abs(v))));
-#ifdef DEBUG
-                    fprintf(stderr, "[Debug] var = %d s = %d\n", (int)v, (int)s);
-#endif
-
                     huff[acid[c]].add_freq((uint8_t)(r << 4 | s), 1);
                 }
+                uint8_t s = (blk[i][j][c][0][0] == 0 ? 0 : (uint8_t)(32 - __builtin_clz(abs(blk[i][j][c][0][0]))));
+                huff[dcid[c]].add_freq(s, 1);
             }
         }
     }
 
-    huff[0].encode();
-    huff[1].encode();
+    for (int i = 0; i < 4; ++i)
+        huff[i].encode();
 
     delete img;
     return 0;
