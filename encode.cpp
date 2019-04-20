@@ -13,7 +13,6 @@ static const uint8_t dcid[3] = {2, 3, 3};
 static const uint8_t qtid[3] = {0, 1, 1};
 
 void write_jpeg(buffer *buf, uint8_t marker, void *ptr = nullptr) {
-    fprintf(stderr, "marker = %02hx\n", marker);
     buf->write_byte(0xFF);
     buf->write_byte(marker);
     switch (marker) {
@@ -79,7 +78,7 @@ void write_jpeg(buffer *buf, uint8_t marker, void *ptr = nullptr) {
 
         case SOF: {
             image *img = (image *)ptr;
-            size_t leng = 2 + 1 + 2 + 2 + 3 * 3;
+            size_t leng = 2 + 1 + 2 + 2 + 1 + 3 * 3;
             uint8_t prec = 8;
             size_t ht = img->ht;
             size_t wd = img->wd;
