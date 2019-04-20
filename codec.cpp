@@ -72,6 +72,9 @@ int16_t DPCM::decode(huffman::decoder *huf, buffer *buf) {
     if (!res)
         return 0;
 
+#ifdef DEBUG
+    fprintf(stderr, "res = %d\n", (int)res);
+#endif
     uint16_t offset = buf->read_bits<uint16_t>(res);
     int16_t diff = (int16_t)(offset >= (1 << (res - 1)) ? offset : -((1 << res) - offset - 1));
 

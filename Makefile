@@ -4,8 +4,9 @@ DBGFLAGS = -Wall -Wextra -Wconversion -O3 -std=c++17 -fsanitize=undefined -fsani
 
 all: decode encode
 
-debug: codec_dbg.o huffman_dbg.o buffer.hpp image_dbg.o decode.cpp
+debug: codec_dbg.o huffman_dbg.o buffer.hpp image_dbg.o decode.cpp encode.cpp
 	$(CXX) image_dbg.o huffman_dbg.o codec_dbg.o decode.cpp -o decode $(DBGFLAGS)
+	$(CXX) image_dbg.o huffman_dbg.o codec_dbg.o encode.cpp -o encode $(DBGFLAGS)
 
 decode: codec.o huffman.o buffer.hpp image.o decode.cpp
 	$(CXX) image.o huffman.o codec.o decode.cpp -o decode $(CFLAGS)

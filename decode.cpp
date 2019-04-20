@@ -71,8 +71,6 @@ int main(int argc, const char **argv) {
                 fprintf(stderr, "[Debug] SOF\n");
 #endif
                 // start of frame (baseline DCT)
-                // size_t leng = buf->read_bytes<size_t>(2);
-                // uint8_t prec = buf->read_bytes<uint8_t>(1);
                 buf->skip_bytes(3);
                 ht = buf->read_bytes<size_t>(2);
                 wd = buf->read_bytes<size_t>(2);
@@ -234,7 +232,7 @@ int main(int argc, const char **argv) {
                 size_t wf = (wd + (hmax * 8) - 1) / (hmax * 8);
 
                 int16_t last_diff[6] = {0, 0, 0, 0, 0, 0};
-                buf->start_read_mcu();
+                buf->start_processing_mcu();
 
                 size_t RSTn = 0;
                 for (int row = 0; row < (int)hf; ++row) {
@@ -309,6 +307,7 @@ int main(int argc, const char **argv) {
                     }
                 }
 
+                buf->end_processing_mcu();
                 buf->flush();
 
 #ifdef DEBUG
@@ -336,12 +335,12 @@ int main(int argc, const char **argv) {
                     exit(1);
                 }
 
-                uint16_t version = buf->read_bytes<uint16_t>(2);
-                uint8_t unit = buf->read_byte();
-                uint16_t x_density = buf->read_bytes<uint16_t>(2);
-                uint16_t y_density = buf->read_bytes<uint16_t>(2);
-                // buf->skip_bytes(7);
-                fprintf(stderr, "version = %d unit = %d x_density = %d y_density = %d\n", version, unit, x_density, y_density);
+                // uint16_t version = buf->read_bytes<uint16_t>(2);
+                // uint8_t unit = buf->read_byte();
+                // uint16_t x_density = buf->read_bytes<uint16_t>(2);
+                // uint16_t y_density = buf->read_bytes<uint16_t>(2);
+                buf->skip_bytes(7);
+                // fprintf(stderr, "version = %d unit = %d x_density = %d y_density = %d\n", version, unit, x_density, y_density);
                 uint8_t width_t  = buf->read_byte();
                 uint8_t height_t = buf->read_byte();
                 fprintf(stderr, "width_t = %d height_t = %d\n", (int)width_t, (int)height_t);

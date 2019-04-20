@@ -107,7 +107,7 @@ void huffman::encoder::calculate(std::vector<std::pair<size_t, uint8_t>> &symb) 
 }
 
 void huffman::encoder::ensure(std::vector<size_t> &cnt, const size_t limit) {
-    for (int i = (int)limit + 1; i < 256; ++i)
+    for (int i = (int)limit + 1; i < 257; ++i)
         cnt[limit] += cnt[i];
 
     size_t sum = 0;
@@ -132,22 +132,30 @@ void huffman::encoder::encode() {
     std::vector<std::pair<size_t, uint8_t>> symb = {{1, 0}};
     for (int i = 0; i < 256; ++i) {
         if (freq[i] > 0)
-            symb.emplace_back(freq[i], i);
+            symb.emplace_back(freq[i], i + 1);
     }
     
     std::sort(symb.begin(), symb.end());
     calculate(symb);
 
+#ifdef DEBUG
+    fprintf(stderr, "done calculate\n");
+#endif
+
     // for (int i = 0; i < (int)symb.size(); ++i)
         // fprintf(stderr, "symb[i].first = %d\n", (int)symb[i].first);
 
-    std::vector<size_t> cnt(256, 0);
+    std::vector<size_t> cnt(257, 0);
     for (int i = 0; i < (int)symb.size(); ++i)
         cnt[symb[i].first]++;
 
     static const size_t limit = 16;
     if ((int)symb.size() > 1)
         ensure(cnt, limit);
+
+#ifdef DEBUG
+    fprintf(stderr, "done ensure\n");
+#endif
 
     std::vector<uint8_t> v;
     for (int i = (int)symb.size() - 1; i >= 1; --i) 
@@ -162,8 +170,10 @@ void huffman::encoder::encode() {
 
     int mask = 0;
     for (int i = 1, j = 0; i <= (int)limit; ++i) {
-        for (int k = 0; k < (int)cnt[i]; ++k, ++j) 
+        for (int k = 0; k < (int)cnt[i]; ++k, ++j) {
+            assert(j < (int)v.size());
             tab[i - 1].push_back(v[j]);
+        }
 
         std::sort(tab[i - 1].begin(), tab[i - 1].end());
         for (int k = 0; k < (int)tab[i - 1].size(); ++k) {
@@ -173,6 +183,19 @@ void huffman::encoder::encode() {
         mask <<= 1;
     }
 
+#ifdef DEBUG
+    for (int i = 0; i < 16; ++i) {
+        for (int j = 0; j < (int)tab[i].size(); ++j) {
+            fprintf(stderr, "%d -> ", (int)tab[i][j]);
+            for (int k = (int)leng[tab[i][j]] - 1; k >= 0; --k)
+                fprintf(stderr, "%d", (code[tab[i][j]] >> k & 1));
+            fprintf(stderr, " ");
+        }
+        fprintf(stderr, "\n");
+    }
+    fprintf(stderr, "exit\n");
+#endif
+    assert(decodable());
 }
 
 bool huffman::encoder::decodable() const {
@@ -187,9 +210,12 @@ bool huffman::encoder::decodable() const {
             int x = i, y = j;
             if (leng[x] > leng[y]) std::swap(x, y);
 
-            for (int k = 0; k < leng[y] - leng[x] + 1; ++k)
-                if ((code[y] >> k & ((1 << leng[x]) - 1)) == code[x])
-                    return false;
+            if ((code[y] >> (leng[y] - leng[x]) & ((1 << leng[x]) - 1)) == code[x]) {
+#ifdef DEBUG
+                fprintf(stderr, "x = %d y = %d\n", x, y);
+#endif
+                return false;
+            }
         }
     }
     return true;

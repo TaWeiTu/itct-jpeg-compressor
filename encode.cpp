@@ -8,12 +8,14 @@
 #include "parse.hpp"
 #include "marker.hpp"
 
-static const int acid[3] = {0, 1, 1};
-static const int dcid[3] = {2, 3, 3};
-static const int qtid[3] = {0, 1, 1};
+static const uint8_t acid[3] = {0, 1, 1};
+static const uint8_t dcid[3] = {2, 3, 3};
+static const uint8_t qtid[3] = {0, 1, 1};
 
-void write_jpeg(buffer *buf, uint16_t marker, void *ptr = nullptr) {
-    buf->write_bytes<uint16_t>(marker, 2);
+void write_jpeg(buffer *buf, uint8_t marker, void *ptr = nullptr) {
+    fprintf(stderr, "marker = %02hx\n", marker);
+    buf->write_byte(0xFF);
+    buf->write_byte(marker);
     switch (marker) {
         case SOI: 
         case EOI:
@@ -75,6 +77,33 @@ void write_jpeg(buffer *buf, uint16_t marker, void *ptr = nullptr) {
             break;
         }
 
+        case SOF: {
+            image *img = (image *)ptr;
+            size_t leng = 2 + 1 + 2 + 2 + 3 * 3;
+            uint8_t prec = 8;
+            size_t ht = img->ht;
+            size_t wd = img->wd;
+            uint8_t cnt = 3;
+
+            buf->write_bytes(leng, 2);
+            buf->write_bytes(prec, 1);
+            buf->write_bytes(ht, 2);
+            buf->write_bytes(wd, 2);
+            buf->write_bytes(cnt, 1);
+
+            for (int i = 0; i < 3; ++i) {
+                uint8_t cid = (uint8_t)(i + 1);
+                uint8_t hor = 1;
+                uint8_t ver = 1;
+                uint8_t nqt = qtid[i];
+                buf->write_byte(cid);
+                buf->write_bits(hor, 4);
+                buf->write_bits(ver, 4);
+                buf->write_byte(nqt);
+            }
+            break;
+        }
+
         case SOS: {
             size_t leng = 2 + 1 + 3 * 2 + 3;
             uint8_t cnt = 3; 
@@ -82,8 +111,8 @@ void write_jpeg(buffer *buf, uint16_t marker, void *ptr = nullptr) {
             buf->write_byte(cnt);
             for (int i = 0; i < 3; ++i) {
                 uint8_t cs = (uint8_t)(i + 1);
-                uint8_t td = (uint8_t)dcid[i];
-                uint8_t ta = (uint8_t)acid[i];
+                uint8_t td = dcid[i];
+                uint8_t ta = acid[i];
                 buf->write_byte(cs);
                 buf->write_bits(td, 4);
                 buf->write_bits(ta, 4);
@@ -119,7 +148,7 @@ int main(int argc, const char **argv) {
 
     huffman::encoder huff[4];
     for (int i = 0; i < 4; ++i)
-        huff[i] = huffman::encoder((uint8_t)(i + 1));
+        huff[i] = huffman::encoder((uint8_t)i);
 
     quantizer qtz[2] = {luminance(0), chrominance(1)};
 
@@ -154,22 +183,33 @@ int main(int argc, const char **argv) {
     for (int i = 0; i < 4; ++i)
         huff[i].encode();
 
+#ifdef DEBUG
+    fprintf(stderr, "done all encoding!\n");
+#endif
+
     buffer *buf = new buffer(fopen(args["dest"].c_str(), "wb"));
     write_jpeg(buf, SOI);
     write_jpeg(buf, APP);
     for (int i = 0; i < 2; ++i)
         write_jpeg(buf, DQT, &qtz[i]);
 
+    write_jpeg(buf, SOF, img);
     for (int i = 0; i < 4; ++i)
         write_jpeg(buf, DHT, &huff[i]);
 
     write_jpeg(buf, SOS);
     memset(last, 0, sizeof(last));
+    
+    buf->start_processing_mcu();
 
     for (int i = 0; i < (int)vbk; ++i) {
         for (int j = 0; j < (int)hbk; ++j) {
             for (int c = 0; c < 3; ++c) {
                 uint8_t s = (blk[i][j][c][0][0] - last[c] == 0 ? 0 : (uint8_t)(32 - __builtin_clz(abs(blk[i][j][c][0][0] - last[c]))));
+
+#ifdef DEBUG
+                fprintf(stderr, "code = %d leng = %d\n", (int)huff[dcid[c]].code[s], (int)huff[dcid[c]].leng[s]);
+#endif
                 buf->write_bits(huff[dcid[c]].code[s], huff[dcid[c]].leng[s]);
                 uint8_t diff = 0;
                 if (blk[i][j][c][0][0] != last[c]) {
@@ -201,6 +241,8 @@ int main(int argc, const char **argv) {
         }
     }
 
+    buf->end_processing_mcu();
+    buf->finish();
     write_jpeg(buf, EOI);
     delete img;
     delete buf;

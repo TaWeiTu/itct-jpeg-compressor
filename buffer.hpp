@@ -28,7 +28,8 @@ struct buffer {
     inline void skip_bits(uint8_t);
     inline void skip_bytes(uint8_t);
 
-    inline void start_read_mcu();
+    inline void start_processing_mcu();
+    inline void end_processing_mcu();
     inline bool read_mcu() const;
     inline void flush();
 
@@ -40,6 +41,7 @@ struct buffer {
     template <typename dtype = uint8_t>
     inline void write_bytes(dtype, uint8_t);
 
+    inline void finish();
 };
 
 inline buffer::buffer(): fp(nullptr), start_mcu(false) {}
@@ -93,8 +95,12 @@ inline void buffer::skip_bits(uint8_t s) {
     read_bits<uint32_t>(s);
 }
 
-inline void buffer::start_read_mcu() {
+inline void buffer::start_processing_mcu() {
     start_mcu = true;
+}
+
+inline void buffer::end_processing_mcu() {
+    start_mcu = false;
 }
 
 inline void buffer::skip_bytes(uint8_t s) {
@@ -109,12 +115,25 @@ inline void buffer::flush() {
     while (bpos != 7) read_bits(1);
 }
 
+inline void buffer::finish() {
+    while (bpos < 7) {
+        cbyte = (uint8_t)(cbyte << 1);
+        bpos++;
+    }
+    if (cbyte)
+        write_byte(cbyte);
+}
+
 template <typename dtype = uint8_t>
 inline void buffer::write_bits(dtype data, uint8_t s) {
     for (int i = (int)s - 1; i >= 0; --i) {
         cbyte = (uint8_t)(cbyte << 1 | (data >> i & 1));
         if (--bpos < 0) {
             fwrite(&cbyte, 1, 1, fp);
+            if (start_mcu && cbyte == 0xFF) {
+                cbyte = 0x00;
+                fwrite(&cbyte, 1, 1, fp);
+            }
             bpos = 7;
             cbyte = 0;
         }
