@@ -26,13 +26,14 @@ namespace huffman {
     };
 
     struct encoder {
+        uint8_t id;
         int code[256];
         size_t freq[256];
         uint8_t leng[256];
         std::vector<uint8_t> tab[16];
 
         encoder();
-        encoder(const std::vector<size_t> &);
+        encoder(uint8_t);
 
         void add_freq(uint8_t, size_t);
         void encode();

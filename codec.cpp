@@ -82,6 +82,8 @@ quantizer::quantizer() {}
 
 quantizer::quantizer(const std::vector<std::vector<int>> &qtable): qtable(qtable) {}
 
+quantizer::quantizer(const std::vector<std::vector<int>> &qtable, uint8_t id): id(id), qtable(qtable){}
+
 std::vector<std::vector<int16_t>> quantizer::quantize(const std::vector<std::vector<float>> &tab) {
     static const int n = (int)tab.size();
     std::vector<std::vector<int16_t>> res(n, std::vector<int16_t>(n));
@@ -300,7 +302,7 @@ void IDCT(std::vector<std::vector<int16_t>> &x) {
     }
 }
 
-quantizer luminance() {
+quantizer luminance(uint8_t id) {
     return quantizer({
         {16, 11, 10, 16, 24, 40, 51, 61},
         {12, 12, 14, 19, 26, 58, 60, 55},
@@ -310,10 +312,10 @@ quantizer luminance() {
         {24, 35, 55, 64, 81, 104, 113, 92},
         {49, 64, 78, 87, 103, 121, 120, 101},
         {72, 92, 95, 98, 112, 100, 103, 99} 
-    });
+    }, id);
 }
 
-quantizer chrominance() {
+quantizer chrominance(uint8_t id) {
     return quantizer({
         {17, 18, 24, 47, 99, 99, 99, 99},
         {18, 21, 26, 66, 99, 99, 99, 99},
@@ -323,5 +325,5 @@ quantizer chrominance() {
         {99, 99, 99, 99, 99, 99, 99, 99},
         {99, 99, 99, 99, 99, 99, 99, 99},
         {99, 99, 99, 99, 99, 99, 99, 99}
-    });
+    }, id);
 }

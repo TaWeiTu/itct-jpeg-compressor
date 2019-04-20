@@ -26,15 +26,17 @@ namespace DPCM {
 }
 
 struct quantizer {
+    uint8_t id = 0;
     std::vector<std::vector<int>> qtable;
     quantizer();
     quantizer(const std::vector<std::vector<int>> &);
+    quantizer(const std::vector<std::vector<int>> &, uint8_t);
     std::vector<std::vector<int16_t>> quantize(const std::vector<std::vector<float>> &);
     void dequantize(std::vector<std::vector<int16_t>> &);
 };
 
-quantizer luminance();
-quantizer chrominance();
+quantizer luminance(uint8_t);
+quantizer chrominance(uint8_t);
 
 std::vector<std::vector<float>> FDCT(std::vector<std::vector<int16_t>> &);
 void IDCT(std::vector<std::vector<int16_t>> &);

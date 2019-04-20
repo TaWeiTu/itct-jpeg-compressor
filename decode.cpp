@@ -107,7 +107,6 @@ int main(int argc, const char **argv) {
 #ifdef DEBUG
                 fprintf(stderr, "[Debug] DHT\n");
 #endif
-                // TODO: store huffman tables
                 // define huffman tables
                 size_t leng = buf->read_bytes<size_t>(2);
                 size_t bytes = 2;
@@ -165,7 +164,6 @@ int main(int argc, const char **argv) {
 #ifdef DEBUG
                 fprintf(stderr, "[Debug] DQT\n");
 #endif
-                // TODO: store quantization tables
                 // define quantization tables
                 size_t leng = buf->read_bytes<size_t>(2);
                 size_t bytes = 2;
@@ -336,14 +334,17 @@ int main(int argc, const char **argv) {
                     exit(1);
                 }
 
-                // uint16_t version = buf->read_bytes<uint16_t>(2);
-                // uint8_t unit = buf->read_byte();
-                // uint16_t x_density = buf->read_bytes<uint16_t>(2);
-                // uint16_t y_density = buf->read_bytes<uint16_t>(2);
-                buf->skip_bytes(7);
+                uint16_t version = buf->read_bytes<uint16_t>(2);
+                uint8_t unit = buf->read_byte();
+                uint16_t x_density = buf->read_bytes<uint16_t>(2);
+                uint16_t y_density = buf->read_bytes<uint16_t>(2);
+                // buf->skip_bytes(7);
+                fprintf(stderr, "version = %d unit = %d x_density = %d y_density = %d\n", version, unit, x_density, y_density);
                 uint8_t width_t  = buf->read_byte();
                 uint8_t height_t = buf->read_byte();
+                fprintf(stderr, "width_t = %d height_t = %d\n", (int)width_t, (int)height_t);
 
+                
                 for (int i = 0; i < (int)width_t; ++i) {
                     for (int j = 0; j < (int)height_t; ++j) {
                         // TODO: make it useful

@@ -9,6 +9,71 @@
 #include "marker.hpp"
 
 
+void write_jpeg(buffer *buf, uint16_t marker, void *ptr) {
+    buf->write_bytes<uint16_t>(marker, 2);
+    switch (marker) {
+        case SOI: 
+            break;
+
+        case APP: {
+            uint64_t mark = 0x4A46494600;
+            uint16_t version = 257;
+            uint8_t unit = 0;
+            uint16_t x_density = 1;
+            uint16_t y_density = 1;
+            uint8_t ht = 0, wd = 0;
+            size_t leng = 2 + 5 + 2 + 1 + 2 + 2 + 1 + 1;
+            buf->write_bytes(leng, 2);
+            buf->write_bytes(mark, 5);
+            buf->write_bytes(version, 2);
+            buf->write_bytes(unit, 1);
+            buf->write_bytes(x_density, 2);
+            buf->write_bytes(y_density, 2);
+            buf->write_bytes(ht, 1);
+            buf->write_bytes(wd, 1);
+            break;
+        }
+
+        case DQT: {
+            quantizer *obj = (quantizer *)ptr;
+            size_t leng = 2 + 1 + 64;
+            uint8_t pq = 0;
+            uint8_t tq = obj->id;
+            buf->write_bytes(leng, 2);
+            buf->write_bits(pq, 4);
+            buf->write_bits(tq, 4);
+
+            for (int k = 0; k < 64; ++k) 
+                buf->write_byte((uint8_t)obj->qtable[zig[k]][zag[k]]);
+
+            break;
+        }
+
+        case DHT: {
+            huffman::encoder *obj = (huffman::encoder *)ptr;
+            uint8_t tc = obj->id < 2;
+            uint8_t th = obj->id;
+
+            size_t leng = 2 + 1 + 16;
+            for (int i = 0; i < 16; ++i)
+                leng += obj->tab[i].size();
+
+            buf->write_bytes(leng, 2);
+            buf->write_bits(tc, 4);
+            buf->write_bits(th, 4);
+            for (int i = 0; i < 16; ++i)
+                buf->write_bytes(obj->tab[i].size(), 1);
+
+            for (int i = 0; i < 16; ++i) {
+                for (int j = 0; j < (int)obj->tab[i].size(); ++j)
+                    buf->write_byte(obj->tab[i][j]);
+            }
+            break;
+        }
+    }
+}
+
+
 int main(int argc, const char **argv) {
     std::map<std::string, std::string> args = parse(argc, argv);
 
@@ -25,7 +90,10 @@ int main(int argc, const char **argv) {
     fprintf(stderr, "vbk = %d hbk = %d\n", (int)vbk, (int)hbk);
 
     huffman::encoder huff[4];
-    quantizer qtz[2] = {luminance(), chrominance()};
+    for (int i = 0; i < 4; ++i)
+        huff[i] = huffman::encoder((uint8_t)(i + 1));
+
+    quantizer qtz[2] = {luminance(0), chrominance(1)};
     int acid[3] = {0, 1, 1};
     int dcid[3] = {2, 3, 3};
     int qtid[3] = {0, 1, 1};
@@ -57,6 +125,21 @@ int main(int argc, const char **argv) {
 
     for (int i = 0; i < 4; ++i)
         huff[i].encode();
+
+    buffer *buf = new buffer(fopen(args["dest"].c_str(), "wb"));
+    write_jpeg(buf, SOI, nullptr);
+    write_jpeg(buf, APP, nullptr);
+    for (int i = 0; i < 2; ++i)
+        write_jpeg(buf, DQT, &qtz[i]);
+
+    for (int i = 0; i < 4; ++i)
+        write_jpeg(buf, DHT, &huff[i]);
+
+    for (int i = 0; i < (int)vbk; ++i) {
+        for (int j = 0; j < (int)hbk; ++j) {
+            
+        }
+    }
 
     delete img;
     return 0;

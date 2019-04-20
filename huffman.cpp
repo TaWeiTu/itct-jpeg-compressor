@@ -48,6 +48,12 @@ huffman::encoder::encoder() {
     memset(leng, 0, sizeof(leng));
 }
 
+huffman::encoder::encoder(uint8_t id): id(id) {
+    memset(code, 0, sizeof(code));
+    memset(freq, 0, sizeof(freq));
+    memset(leng, 0, sizeof(leng));
+}
+
 void huffman::encoder::add_freq(uint8_t sym, size_t f = 1) {
     freq[sym] += f;
 }
@@ -156,13 +162,17 @@ void huffman::encoder::encode() {
 
     int mask = 0;
     for (int i = 1, j = 0; i <= (int)limit; ++i) {
-        for (int k = 0; k < (int)cnt[i]; ++k, ++j) {
+        for (int k = 0; k < (int)cnt[i]; ++k, ++j) 
             tab[i - 1].push_back(v[j]);
-            code[symb[j].second] = mask++;
-            leng[symb[j].second] = (uint8_t)i;
+
+        std::sort(tab[i - 1].begin(), tab[i - 1].end());
+        for (int k = 0; k < (int)tab[i - 1].size(); ++k) {
+            leng[tab[i - 1][k]] = (uint8_t)i;
+            code[tab[i - 1][k]] = mask++;
         }
         mask <<= 1;
     }
+
 }
 
 bool huffman::encoder::decodable() const {
