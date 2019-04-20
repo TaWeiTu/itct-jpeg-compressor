@@ -8,11 +8,15 @@
 #include "parse.hpp"
 #include "marker.hpp"
 
+static const int acid[3] = {0, 1, 1};
+static const int dcid[3] = {2, 3, 3};
+static const int qtid[3] = {0, 1, 1};
 
-void write_jpeg(buffer *buf, uint16_t marker, void *ptr) {
+void write_jpeg(buffer *buf, uint16_t marker, void *ptr = nullptr) {
     buf->write_bytes<uint16_t>(marker, 2);
     switch (marker) {
         case SOI: 
+        case EOI:
             break;
 
         case APP: {
@@ -70,6 +74,30 @@ void write_jpeg(buffer *buf, uint16_t marker, void *ptr) {
             }
             break;
         }
+
+        case SOS: {
+            size_t leng = 2 + 1 + 3 * 2 + 3;
+            uint8_t cnt = 3; 
+            buf->write_bytes(leng, 2);
+            buf->write_byte(cnt);
+            for (int i = 0; i < 3; ++i) {
+                uint8_t cs = (uint8_t)(i + 1);
+                uint8_t td = (uint8_t)dcid[i];
+                uint8_t ta = (uint8_t)acid[i];
+                buf->write_byte(cs);
+                buf->write_bits(td, 4);
+                buf->write_bits(ta, 4);
+            }
+
+            buf->write_byte(0x00);
+            buf->write_byte(0x3F);
+            buf->write_byte(0x00);
+            break;
+        }
+
+        default:
+            fprintf(stderr, "[Error] Unknown marker\n");
+            exit(1);
     }
 }
 
@@ -94,12 +122,11 @@ int main(int argc, const char **argv) {
         huff[i] = huffman::encoder((uint8_t)(i + 1));
 
     quantizer qtz[2] = {luminance(0), chrominance(1)};
-    int acid[3] = {0, 1, 1};
-    int dcid[3] = {2, 3, 3};
-    int qtid[3] = {0, 1, 1};
 
     using block_type = std::array<std::vector<std::vector<int16_t>>, 3>;
     std::vector<std::vector<block_type>> blk(vbk, std::vector<block_type>(hbk));
+
+    int16_t last[3] = {0, 0, 0};
 
     for (int i = 0; i < (int)vbk; ++i) {
         for (int j = 0; j < (int)hbk; ++j) {
@@ -117,8 +144,9 @@ int main(int argc, const char **argv) {
                     uint8_t s = (v == 0 ? 0 : (uint8_t)(32 - __builtin_clz(abs(v))));
                     huff[acid[c]].add_freq((uint8_t)(r << 4 | s), 1);
                 }
-                uint8_t s = (blk[i][j][c][0][0] == 0 ? 0 : (uint8_t)(32 - __builtin_clz(abs(blk[i][j][c][0][0]))));
+                uint8_t s = (blk[i][j][c][0][0] - last[c] == 0 ? 0 : (uint8_t)(32 - __builtin_clz(abs(blk[i][j][c][0][0] - last[c]))));
                 huff[dcid[c]].add_freq(s, 1);
+                last[c] = blk[i][j][c][0][0];
             }
         }
     }
@@ -127,20 +155,55 @@ int main(int argc, const char **argv) {
         huff[i].encode();
 
     buffer *buf = new buffer(fopen(args["dest"].c_str(), "wb"));
-    write_jpeg(buf, SOI, nullptr);
-    write_jpeg(buf, APP, nullptr);
+    write_jpeg(buf, SOI);
+    write_jpeg(buf, APP);
     for (int i = 0; i < 2; ++i)
         write_jpeg(buf, DQT, &qtz[i]);
 
     for (int i = 0; i < 4; ++i)
         write_jpeg(buf, DHT, &huff[i]);
 
+    write_jpeg(buf, SOS);
+    memset(last, 0, sizeof(last));
+
     for (int i = 0; i < (int)vbk; ++i) {
         for (int j = 0; j < (int)hbk; ++j) {
-            
+            for (int c = 0; c < 3; ++c) {
+                uint8_t s = (blk[i][j][c][0][0] - last[c] == 0 ? 0 : (uint8_t)(32 - __builtin_clz(abs(blk[i][j][c][0][0] - last[c]))));
+                buf->write_bits(huff[dcid[c]].code[s], huff[dcid[c]].leng[s]);
+                uint8_t diff = 0;
+                if (blk[i][j][c][0][0] != last[c]) {
+                    if (blk[i][j][c][0][0] < last[c])
+                        diff = (uint8_t)((1 << s) - 1 - (last[c] - blk[i][j][c][0][0]));
+                    else
+                        diff = (uint8_t)(blk[i][j][c][0][0] - last[c]);
+                }
+                buf->write_bits(diff, s);
+                last[c] = blk[i][j][c][0][0];
+
+                std::vector<std::pair<uint8_t, int16_t>> RLP = RLC::encode_block(blk[i][j][c]);
+                for (int k = 0; k < (int)RLP.size(); ++k) {
+                    uint8_t r = RLP[k].first;
+                    int16_t v = RLP[k].second;
+                    uint8_t s = (v == 0 ? 0 : (uint8_t)(32 - __builtin_clz(abs(v))));
+                    uint8_t diff = 0;
+                    if (v != 0) {
+                        if (v < 0)
+                            diff = (uint8_t)((1 << s) - 1 + v);
+                        else
+                            diff = (uint8_t)v;
+                    }
+                    buf->write_bits(huff[acid[c]].code[r << 4 | s], huff[acid[c]].leng[r << 4 | s]);
+                    buf->write_bits(diff, s);
+                    // huff[acid[c]].add_freq((uint8_t)(r << 4 | s), 1);
+                }
+            }
         }
     }
 
+    write_jpeg(buf, EOI);
     delete img;
+    delete buf;
+
     return 0;
 }

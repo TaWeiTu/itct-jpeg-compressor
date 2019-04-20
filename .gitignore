@@ -11,3 +11,5 @@ log
 *.bmp
 bmp_format
 *.txt
+hex
+*.jpg

@@ -226,7 +226,9 @@ int main(int argc, const char **argv) {
                     acid[cs] = ta;
                 }
 
-                buf->skip_bytes(3);
+                // buf->skip_bytes(3);
+                for (int i = 0; i < 3; ++i)
+                    fprintf(stderr, "%d\n", (int)buf->read_byte());
 
                 size_t hf = (ht + (vmax * 8) - 1) / (vmax * 8);
                 size_t wf = (wd + (hmax * 8) - 1) / (hmax * 8);
