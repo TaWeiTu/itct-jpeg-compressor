@@ -8,8 +8,10 @@ pixel::pixel() {}
 
 pixel::pixel(uint8_t r, uint8_t g, uint8_t b): r(r), g(g), b(b) {
     y  = (int16_t)(  0 + 0.299    * r + 0.587    * g + 0.114    * b - 128);
-    cb = (int16_t)(128 - 0.168736 * r - 0.331264 * g + 0.5      * b - 128);
-    cr = (int16_t)(128 + 0.5      * r - 0.418688 * g - 0.081312 * b - 128);
+    cb = (int16_t)(  0 - 0.168736 * r - 0.331264 * g + 0.5      * b);
+    cr = (int16_t)(  0 + 0.5      * r - 0.418688 * g - 0.081312 * b);
+
+    // fprintf(stderr, "y = %d cb = %d cr = %d\n", (int)y, (int)cb, (int)cr);
 }
 
 pixel::pixel(int16_t y, int16_t cb, int16_t cr): y(y), cb(cb), cr(cr) {

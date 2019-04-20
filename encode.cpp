@@ -140,10 +140,8 @@ int main(int argc, const char **argv) {
         img = new PPM();
 
     img->read(args["src"].c_str());
-    fprintf(stderr, "source = %s\n", args["src"].c_str());
     size_t vbk = (img->ht + 7) / 8;
     size_t hbk = (img->wd + 7) / 8; 
-    fprintf(stderr, "vbk = %d hbk = %d\n", (int)vbk, (int)hbk);
 
     huffman::encoder huff[4];
     for (int i = 0; i < 4; ++i)

@@ -159,7 +159,8 @@ void huffman::encoder::encode() {
 
     std::vector<uint8_t> v;
     for (int i = (int)symb.size() - 1; i >= 1; --i) 
-        v.push_back((uint8_t)(symb[i].second - 1));
+        if (symb[i].second > 0)
+            v.push_back((uint8_t)(symb[i].second - 1));
 
     for (int i = (int)limit; i >= 1; --i) {
         if (cnt[i] > 0) {
@@ -168,8 +169,8 @@ void huffman::encoder::encode() {
         }
     }
 
-    int mask = 0;
-    for (int i = 1, j = 0; i <= (int)limit; ++i) {
+    int mask = 0, j = 0;
+    for (int i = 1; i <= (int)limit; ++i) {
         for (int k = 0; k < (int)cnt[i]; ++k, ++j) {
             assert(j < (int)v.size());
             tab[i - 1].push_back(v[j]);

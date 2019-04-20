@@ -116,12 +116,7 @@ inline void buffer::flush() {
 }
 
 inline void buffer::finish() {
-    while (bpos < 7) {
-        cbyte = (uint8_t)(cbyte << 1);
-        bpos++;
-    }
-    if (cbyte)
-        write_byte(cbyte);
+    while (bpos != 7) write_bits(0, 1);
 }
 
 template <typename dtype = uint8_t>

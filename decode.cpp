@@ -224,9 +224,7 @@ int main(int argc, const char **argv) {
                     acid[cs] = ta;
                 }
 
-                // buf->skip_bytes(3);
-                for (int i = 0; i < 3; ++i)
-                    fprintf(stderr, "%d\n", (int)buf->read_byte());
+                buf->skip_bytes(3);
 
                 size_t hf = (ht + (vmax * 8) - 1) / (vmax * 8);
                 size_t wf = (wd + (hmax * 8) - 1) / (hmax * 8);
@@ -343,7 +341,6 @@ int main(int argc, const char **argv) {
                 // fprintf(stderr, "version = %d unit = %d x_density = %d y_density = %d\n", version, unit, x_density, y_density);
                 uint8_t width_t  = buf->read_byte();
                 uint8_t height_t = buf->read_byte();
-                fprintf(stderr, "width_t = %d height_t = %d\n", (int)width_t, (int)height_t);
 
                 
                 for (int i = 0; i < (int)width_t; ++i) {
