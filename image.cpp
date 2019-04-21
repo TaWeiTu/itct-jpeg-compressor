@@ -40,7 +40,7 @@ void image::add_block(size_t topmost, size_t leftmost,
                            const std::vector<std::vector<int16_t>> &Cr) {
     
     for (size_t i = 0; i < Y.size(); ++i) {
-        for (size_t j = 0; j < Y.size(); ++j) {
+        for (size_t j = 0; j < Y[0].size(); ++j) {
             if (topmost + i >= ht || leftmost + j >= wd) continue;
             pixel px(Y[i][j], Cb[i][j], Cr[i][j]);
             add_pixel(topmost + i, leftmost + j, px);

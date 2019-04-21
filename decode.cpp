@@ -234,12 +234,13 @@ int main(int argc, const char **argv) {
                 std::vector<std::vector<int16_t>> Y(8 * vmax, std::vector<int16_t>(8 * hmax, EMPTY));
                 std::vector<std::vector<int16_t>> Cb(8 * vmax, std::vector<int16_t>(8 * hmax, EMPTY));
                 std::vector<std::vector<int16_t>> Cr(8 * vmax, std::vector<int16_t>(8 * hmax, EMPTY));
+
                 for (int row = 0; row < (int)hf; ++row) {
                     for (int col = 0; col < (int)wf; ++col) {
+                        std::fill(Y.begin(), Y.end(),   std::vector<int16_t>(8 * hmax, EMPTY));
+                        std::fill(Cb.begin(), Cb.end(), std::vector<int16_t>(8 * hmax, EMPTY));
+                        std::fill(Cr.begin(), Cr.end(), std::vector<int16_t>(8 * hmax, EMPTY));
                         for (int c = 1; c <= 3; ++c) {
-                            std::fill(Y.begin(), Y.end(),   std::vector<int16_t>(8 * hmax, EMPTY));
-                            std::fill(Cb.begin(), Cb.end(), std::vector<int16_t>(8 * hmax, EMPTY));
-                            std::fill(Cr.begin(), Cr.end(), std::vector<int16_t>(8 * hmax, EMPTY));
                             for (int i = 0; i < (int)fv[c]; ++i) {
                                 for (int j = 0; j < (int)fh[c]; ++j) {
                                     int16_t diff = DPCM::decode(&dc[dcid[c]], buf);
@@ -291,7 +292,7 @@ int main(int argc, const char **argv) {
                         
                         // fprintf(stderr, "Y.size() = %d\n", (int)Y.size());
                         for (int i = 0; i < (int)Y.size(); ++i) {
-                            for (int j = 0; j < (int)Y.size(); ++j) {
+                            for (int j = 0; j < (int)Y[0].size(); ++j) {
                                 if (Y[i][j] == EMPTY)
                                     Y[i][j] = Y[i % 8][j % 8];
                                 if (Cb[i][j] == EMPTY)
@@ -337,7 +338,7 @@ int main(int argc, const char **argv) {
                 // uint16_t x_density = buf->read_bytes<uint16_t>(2);
                 // uint16_t y_density = buf->read_bytes<uint16_t>(2);
                 buf->skip_bytes(7);
-                // fprintf(stderr, "version = %d unit = %d x_density = %d y_density = %d\n", version, unit, x_density, y_density);
+                // fprintf(stderr, "version = %d unit = %d x_density = %d y_density = %d\n", (int)version, (int)unit, (int)x_density, (int)y_density);
                 uint8_t width_t  = buf->read_byte();
                 uint8_t height_t = buf->read_byte();
 
