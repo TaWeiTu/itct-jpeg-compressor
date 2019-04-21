@@ -11,6 +11,9 @@ void usage() {
     exit(1);
 }
 
+uint8_t fh[3] = {2, 1, 1};
+uint8_t fv[3] = {2, 1, 1};
+
 std::map<std::string, std::string> parse(int argc, const char **argv) {
     std::map<std::string, std::string> res = {
         {"dest", "output.bmp"},

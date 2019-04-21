@@ -48,11 +48,11 @@ void image::add_block(size_t topmost, size_t leftmost,
     }
 }
 
-std::vector<std::vector<int16_t>> image::Y_block(size_t topmost, size_t leftmost, size_t side) const {
-    std::vector<std::vector<int16_t>> block(side, std::vector<int16_t>(side));
+std::vector<std::vector<int16_t>> image::Y_block(size_t topmost, size_t leftmost) const {
+    std::vector<std::vector<int16_t>> block(8, std::vector<int16_t>(8));
 
-    for (size_t i = topmost, ci = 0; ci < side; ++i, ++ci) {
-        for (size_t j = leftmost, cj = 0; cj < side; ++j, ++cj) {
+    for (size_t i = topmost, ci = 0; ci < 8; ++i, ++ci) {
+        for (size_t j = leftmost, cj = 0; cj < 8; ++j, ++cj) {
             if (i < ht && j < wd)
                 block[ci][cj] = pix[i][j].y;
         }
@@ -60,11 +60,11 @@ std::vector<std::vector<int16_t>> image::Y_block(size_t topmost, size_t leftmost
     return block;
 }
 
-std::vector<std::vector<int16_t>> image::Cb_block(size_t topmost, size_t leftmost, size_t side) const {
-    std::vector<std::vector<int16_t>> block(side, std::vector<int16_t>(side));
+std::vector<std::vector<int16_t>> image::Cb_block(size_t topmost, size_t leftmost) const {
+    std::vector<std::vector<int16_t>> block(8, std::vector<int16_t>(8));
 
-    for (size_t i = topmost, ci = 0; ci < side; ++i, ++ci) {
-        for (size_t j = leftmost, cj = 0; cj < side; ++j, ++cj) {
+    for (size_t i = topmost, ci = 0; ci < 8; ++i, ++ci) {
+        for (size_t j = leftmost, cj = 0; cj < 8; ++j, ++cj) {
             if (i < ht && j < wd)
                 block[ci][cj] = pix[i][j].cb;
         }
@@ -72,11 +72,11 @@ std::vector<std::vector<int16_t>> image::Cb_block(size_t topmost, size_t leftmos
     return block;
 }
 
-std::vector<std::vector<int16_t>> image::Cr_block(size_t topmost, size_t leftmost, size_t side) const {
-    std::vector<std::vector<int16_t>> block(side, std::vector<int16_t>(side));
+std::vector<std::vector<int16_t>> image::Cr_block(size_t topmost, size_t leftmost) const {
+    std::vector<std::vector<int16_t>> block(8, std::vector<int16_t>(8));
 
-    for (size_t i = topmost, ci = 0; ci < side; ++i, ++ci) {
-        for (size_t j = leftmost, cj = 0; cj < side; ++j, ++cj) {
+    for (size_t i = topmost, ci = 0; ci < 8; ++i, ++ci) {
+        for (size_t j = leftmost, cj = 0; cj < 8; ++j, ++cj) {
             if (i < ht && j < wd)
                 block[ci][cj] = pix[i][j].cr;
         }

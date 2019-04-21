@@ -59,6 +59,7 @@ void huffman::encoder::add_freq(uint8_t sym, size_t f = 1) {
 }
 
 // referenced from https://github.com/kornelski/jpeg-compressor/blob/master/jpge.cpp
+// TODO: should refactor
 void huffman::encoder::calculate(std::vector<std::pair<size_t, uint8_t>> &symb) {
     if ((int)symb.size() == 1) {
         symb[0].first = 1;

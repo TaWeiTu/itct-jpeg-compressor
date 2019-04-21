@@ -32,9 +32,9 @@ struct image {
                                    const std::vector<std::vector<int16_t>> &,
                                    const std::vector<std::vector<int16_t>> &);
 
-    std::vector<std::vector<int16_t>> Y_block(size_t, size_t, size_t) const;
-    std::vector<std::vector<int16_t>> Cb_block(size_t, size_t, size_t) const;
-    std::vector<std::vector<int16_t>> Cr_block(size_t, size_t, size_t) const;
+    std::vector<std::vector<int16_t>> Y_block(size_t, size_t) const;
+    std::vector<std::vector<int16_t>> Cb_block(size_t, size_t) const;
+    std::vector<std::vector<int16_t>> Cr_block(size_t, size_t) const;
 };
 
 struct PPM: image {

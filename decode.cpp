@@ -31,9 +31,13 @@ int main(int argc, const char **argv) {
 
     const char *dest = args["dest"].c_str();
 
+    // quantization table id, horizontal sampling rate, vertical sampling rate
+    // DC/AC huffman table id
     static uint8_t qt[6], fh[6], fv[6], dcid[6], acid[6];
     huffman::decoder dc[4], ac[4];
     quantizer qtz[4];
+
+    // height and width of the image, reset interval
     size_t ht = 0, wd = 0, itvl = 0;
     uint8_t hmax = 0, vmax = 0;
 
@@ -44,6 +48,7 @@ int main(int argc, const char **argv) {
     image *img = nullptr;
 
     while (!eoi) {
+        // reading marker
         uint8_t byte1 = buf->read_byte();
         uint8_t byte2 = buf->read_byte();
 
@@ -130,14 +135,6 @@ int main(int argc, const char **argv) {
 
                         bytes += (int)symbol[i].size();
                     }
-
-                    // for (int i = 0; i < 16; ++i) {
-                        // fprintf(stderr, "codeword[%d] = %d -> ", i, (int)codeword[i]);
-                        // for (int j = 0; j < (int)symbol[i].size(); ++j)
-                            // fprintf(stderr, "%d ", (int)symbol[i][j]);
-
-                        // fprintf(stderr, "\n");
-                    // }
 
                     if (tc) 
                         ac[th] = huffman::decoder(symbol);
@@ -233,13 +230,16 @@ int main(int argc, const char **argv) {
                 buf->start_processing_mcu();
 
                 size_t RSTn = 0;
+                const int16_t EMPTY = 32767;
+                std::vector<std::vector<int16_t>> Y(8 * vmax, std::vector<int16_t>(8 * hmax, EMPTY));
+                std::vector<std::vector<int16_t>> Cb(8 * vmax, std::vector<int16_t>(8 * hmax, EMPTY));
+                std::vector<std::vector<int16_t>> Cr(8 * vmax, std::vector<int16_t>(8 * hmax, EMPTY));
                 for (int row = 0; row < (int)hf; ++row) {
                     for (int col = 0; col < (int)wf; ++col) {
-                        const int16_t EMPTY = 32767;
-                        std::vector<std::vector<int16_t>> Y(8 * vmax, std::vector<int16_t>(8 * hmax, EMPTY));
-                        std::vector<std::vector<int16_t>> Cb(8 * vmax, std::vector<int16_t>(8 * hmax, EMPTY));
-                        std::vector<std::vector<int16_t>> Cr(8 * vmax, std::vector<int16_t>(8 * hmax, EMPTY));
                         for (int c = 1; c <= 3; ++c) {
+                            std::fill(Y.begin(), Y.end(),   std::vector<int16_t>(8 * hmax, EMPTY));
+                            std::fill(Cb.begin(), Cb.end(), std::vector<int16_t>(8 * hmax, EMPTY));
+                            std::fill(Cr.begin(), Cr.end(), std::vector<int16_t>(8 * hmax, EMPTY));
                             for (int i = 0; i < (int)fv[c]; ++i) {
                                 for (int j = 0; j < (int)fh[c]; ++j) {
                                     int16_t diff = DPCM::decode(&dc[dcid[c]], buf);
@@ -324,7 +324,6 @@ int main(int argc, const char **argv) {
 #ifdef DEBUG
                 fprintf(stderr, "[Debug] APP\n");
 #endif
-                // size_t leng = buf->read_bytes<size_t>(2);
                 buf->skip_bytes(2);
                 uint64_t mark = buf->read_bytes<uint64_t>(5);
                 

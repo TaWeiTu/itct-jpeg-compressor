@@ -8,13 +8,15 @@
 #include "parse.hpp"
 #include "marker.hpp"
 
-static const uint8_t acid[3] = {0, 1, 1};
-static const uint8_t dcid[3] = {2, 3, 3};
-static const uint8_t qtid[3] = {0, 1, 1};
+const uint8_t acid[3] = {0, 1, 1};
+const uint8_t dcid[3] = {2, 3, 3};
+const uint8_t qtid[3] = {0, 1, 1};
 
 void write_jpeg(buffer *buf, uint8_t marker, void *ptr = nullptr) {
+    // write jpeg marker
     buf->write_byte(0xFF);
     buf->write_byte(marker);
+
     switch (marker) {
         case SOI: 
         case EOI:
@@ -92,8 +94,8 @@ void write_jpeg(buffer *buf, uint8_t marker, void *ptr = nullptr) {
 
             for (int i = 0; i < 3; ++i) {
                 uint8_t cid = (uint8_t)(i + 1);
-                uint8_t hor = 1;
-                uint8_t ver = 1;
+                uint8_t hor = fh[i];
+                uint8_t ver = fv[i];
                 uint8_t nqt = qtid[i];
                 buf->write_byte(cid);
                 buf->write_bits(hor, 4);
@@ -140,8 +142,15 @@ int main(int argc, const char **argv) {
         img = new PPM();
 
     img->read(args["src"].c_str());
-    size_t vbk = (img->ht + 7) / 8;
-    size_t hbk = (img->wd + 7) / 8; 
+
+    uint8_t vmax = *std::max_element(fv, fv + 3);
+    uint8_t hmax = *std::max_element(fh, fh + 3);
+    size_t block_per_mcu = 0;
+    for (int i = 0; i < 3; ++i)
+        block_per_mcu += (size_t)(fv[i] * fh[i]);
+
+    size_t hf = (img->ht + (vmax * 8) - 1) / (vmax * 8);
+    size_t wf = (img->wd + (hmax * 8) - 1) / (hmax * 8);
 
     huffman::encoder huff[4];
     for (int i = 0; i < 4; ++i)
@@ -149,30 +158,35 @@ int main(int argc, const char **argv) {
 
     quantizer qtz[2] = {luminance(0), chrominance(1)};
 
-    using block_type = std::array<std::vector<std::vector<int16_t>>, 3>;
-    std::vector<std::vector<block_type>> blk(vbk, std::vector<block_type>(hbk));
+    using block_type = std::vector<std::vector<std::vector<int16_t>>>;
+    std::vector<std::vector<block_type>> blk(hf, std::vector<block_type>(wf));
 
     int16_t last[3] = {0, 0, 0};
 
-    for (int i = 0; i < (int)vbk; ++i) {
-        for (int j = 0; j < (int)hbk; ++j) {
-            std::vector<std::vector<int16_t>> block[3] = {
-                img->Y_block(i * 8, j * 8, 8),
-                img->Cb_block(i * 8, j * 8, 8),
-                img->Cr_block(i * 8, j * 8, 8)
-            };
-            for (int c = 0; c < 3; ++c) {
-                blk[i][j][c] = qtz[qtid[c]].quantize(FDCT(block[c]));
-                std::vector<std::pair<uint8_t, int16_t>> RLP = RLC::encode_block(blk[i][j][c]);
-                for (int k = 0; k < (int)RLP.size(); ++k) {
-                    uint8_t r = RLP[k].first;
-                    int16_t v = RLP[k].second;
-                    uint8_t s = (v == 0 ? 0 : (uint8_t)(32 - __builtin_clz(abs(v))));
-                    huff[acid[c]].add_freq((uint8_t)(r << 4 | s), 1);
+    for (int i = 0; i < (int)hf; ++i) {
+        for (int j = 0; j < (int)wf; ++j) {
+            blk[i][j].resize(block_per_mcu);
+            for (int c = 0, p = 0; c < 3; ++c) {
+                for (int x = 0; x < (int)fv[c]; ++x) {
+                    for (int y = 0; y < (int)fh[c]; ++y) {
+                        std::vector<std::vector<int16_t>> block = 
+                            c == 0 ? img->Y_block(i * vmax * 8 + x * 8, j * hmax * 8 + y * 8) : 
+                            c == 1 ? img->Cb_block(i * vmax * 8 + x * 8, j * hmax * 8 + y * 8) :
+                            img->Cr_block(i * vmax * 8 + x * 8, j * hmax * 8 + y * 8);
+                        blk[i][j][p] = qtz[qtid[c]].quantize(FDCT(block));
+                        std::vector<std::pair<uint8_t, int16_t>> RLP = RLC::encode_block(blk[i][j][p]);
+                        for (int k = 0; k < (int)RLP.size(); ++k) {
+                            uint8_t r = RLP[k].first;
+                            int16_t v = RLP[k].second;
+                            uint8_t s = (v == 0 ? 0 : (uint8_t)(32 - __builtin_clz(abs(v))));
+                            huff[acid[c]].add_freq((uint8_t)(r << 4 | s), 1);
+                        }
+                        uint8_t s = (blk[i][j][p][0][0] - last[c] == 0 ? 0 : (uint8_t)(32 - __builtin_clz(abs(blk[i][j][p][0][0] - last[c]))));
+                        huff[dcid[c]].add_freq(s, 1);
+                        last[c] = blk[i][j][p][0][0];
+                        p++;
+                    }
                 }
-                uint8_t s = (blk[i][j][c][0][0] - last[c] == 0 ? 0 : (uint8_t)(32 - __builtin_clz(abs(blk[i][j][c][0][0] - last[c]))));
-                huff[dcid[c]].add_freq(s, 1);
-                last[c] = blk[i][j][c][0][0];
             }
         }
     }
@@ -199,40 +213,42 @@ int main(int argc, const char **argv) {
     
     buf->start_processing_mcu();
 
-    for (int i = 0; i < (int)vbk; ++i) {
-        for (int j = 0; j < (int)hbk; ++j) {
-            for (int c = 0; c < 3; ++c) {
-                uint8_t s = (blk[i][j][c][0][0] - last[c] == 0 ? 0 : (uint8_t)(32 - __builtin_clz(abs(blk[i][j][c][0][0] - last[c]))));
+    for (int i = 0; i < (int)hf; ++i) {
+        for (int j = 0; j < (int)wf; ++j) {
+            for (int c = 0, p = 0; c < 3; ++c) {
+                for (int x = 0; x < (int)fv[c]; ++x) {
+                    for (int y = 0; y < (int)fh[c]; ++y) {
+                        int16_t dc = blk[i][j][p][0][0];
+                        uint8_t s = (dc - last[c] == 0 ? 0 : (uint8_t)(32 - __builtin_clz(abs(dc - last[c]))));
 
-#ifdef DEBUG
-                fprintf(stderr, "code = %d leng = %d\n", (int)huff[dcid[c]].code[s], (int)huff[dcid[c]].leng[s]);
-#endif
-                buf->write_bits(huff[dcid[c]].code[s], huff[dcid[c]].leng[s]);
-                uint8_t diff = 0;
-                if (blk[i][j][c][0][0] != last[c]) {
-                    if (blk[i][j][c][0][0] < last[c])
-                        diff = (uint8_t)((1 << s) - 1 - (last[c] - blk[i][j][c][0][0]));
-                    else
-                        diff = (uint8_t)(blk[i][j][c][0][0] - last[c]);
-                }
-                buf->write_bits(diff, s);
-                last[c] = blk[i][j][c][0][0];
+                        buf->write_bits(huff[dcid[c]].code[s], huff[dcid[c]].leng[s]);
+                        uint8_t diff = 0;
+                        if (dc != last[c]) {
+                            if (dc < last[c])
+                                diff = (uint8_t)((1 << s) - 1 - (last[c] - dc));
+                            else
+                                diff = (uint8_t)(dc - last[c]);
+                        }
+                        buf->write_bits(diff, s);
+                        last[c] = dc;
 
-                std::vector<std::pair<uint8_t, int16_t>> RLP = RLC::encode_block(blk[i][j][c]);
-                for (int k = 0; k < (int)RLP.size(); ++k) {
-                    uint8_t r = RLP[k].first;
-                    int16_t v = RLP[k].second;
-                    uint8_t s = (v == 0 ? 0 : (uint8_t)(32 - __builtin_clz(abs(v))));
-                    uint8_t diff = 0;
-                    if (v != 0) {
-                        if (v < 0)
-                            diff = (uint8_t)((1 << s) - 1 + v);
-                        else
-                            diff = (uint8_t)v;
+                        std::vector<std::pair<uint8_t, int16_t>> RLP = RLC::encode_block(blk[i][j][p]);
+                        for (int k = 0; k < (int)RLP.size(); ++k) {
+                            uint8_t r = RLP[k].first;
+                            int16_t v = RLP[k].second;
+                            uint8_t s = (v == 0 ? 0 : (uint8_t)(32 - __builtin_clz(abs(v))));
+                            uint8_t diff = 0;
+                            if (v != 0) {
+                                if (v < 0)
+                                    diff = (uint8_t)((1 << s) - 1 + v);
+                                else
+                                    diff = (uint8_t)v;
+                            }
+                            buf->write_bits(huff[acid[c]].code[r << 4 | s], huff[acid[c]].leng[r << 4 | s]);
+                            buf->write_bits(diff, s);
+                        }
+                        p++;
                     }
-                    buf->write_bits(huff[acid[c]].code[r << 4 | s], huff[acid[c]].leng[r << 4 | s]);
-                    buf->write_bits(diff, s);
-                    // huff[acid[c]].add_freq((uint8_t)(r << 4 | s), 1);
                 }
             }
         }
