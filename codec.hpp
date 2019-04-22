@@ -14,9 +14,9 @@
 
 namespace RLC {
     std::pair<uint8_t, int16_t> decode_pixel(huffman::decoder*, buffer*);
-    std::vector<std::vector<int16_t>> decode_block(huffman::decoder*, buffer*);
+    std::array<std::array<int16_t, 8>, 8> decode_block(huffman::decoder*, buffer*);
 
-    std::vector<std::pair<uint8_t, int16_t>> encode_block(const std::vector<std::vector<int16_t>> &);
+    std::vector<std::pair<uint8_t, int16_t>> encode_block(const std::array<std::array<int16_t, 8>, 8> &);
 }
 
 namespace DPCM {
@@ -27,18 +27,21 @@ namespace DPCM {
 
 struct quantizer {
     uint8_t id = 0;
-    std::vector<std::vector<int>> qtable;
+    std::array<std::array<int, 8>, 8> qtable;
     quantizer();
-    quantizer(const std::vector<std::vector<int>> &);
-    quantizer(const std::vector<std::vector<int>> &, uint8_t);
-    std::vector<std::vector<int16_t>> quantize(const std::vector<std::vector<float>> &);
-    void dequantize(std::vector<std::vector<int16_t>> &);
+    quantizer(const std::array<std::array<int, 8>, 8> &);
+    quantizer(const std::array<std::array<int, 8>, 8> &, uint8_t);
+    std::array<std::array<int16_t, 8>, 8> quantize(const std::array<std::array<float, 8>, 8> &);
+    void dequantize(std::array<std::array<int16_t, 8>, 8> &);
 };
 
 quantizer luminance(uint8_t);
 quantizer chrominance(uint8_t);
+quantizer dummy(uint8_t);
 
-std::vector<std::vector<float>> FDCT(std::vector<std::vector<int16_t>> &);
-void IDCT(std::vector<std::vector<int16_t>> &);
+std::array<std::array<float, 8>, 8> FDCT(std::array<std::array<int16_t, 8>, 8> &);
+void IDCT(std::array<std::array<int16_t, 8>, 8> &);
+
+std::array<std::array<int, 8>, 8> construct_block(std::initializer_list<int>);
 
 #endif

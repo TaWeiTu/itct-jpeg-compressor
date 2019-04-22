@@ -3,10 +3,7 @@
 
 uint8_t byte_;
 #define WRITE(b) do { byte_ = b; fwrite(&byte_, 1, 1, fp); } while (false)
-
-pixel::pixel() {}
-
-pixel::pixel(uint8_t r, uint8_t g, uint8_t b): r(r), g(g), b(b) {
+pixel::pixel() {} pixel::pixel(uint8_t r, uint8_t g, uint8_t b): r(r), g(g), b(b) {
     y  = (int16_t)(  0 + 0.299    * r + 0.587    * g + 0.114    * b - 128);
     cb = (int16_t)(  0 - 0.168736 * r - 0.331264 * g + 0.5      * b);
     cr = (int16_t)(  0 + 0.5      * r - 0.418688 * g - 0.081312 * b);
@@ -35,9 +32,9 @@ void image::add_pixel(size_t r, size_t c, pixel px) {
 }
 
 void image::add_block(size_t topmost, size_t leftmost, 
-                           const std::vector<std::vector<int16_t>> &Y,
-                           const std::vector<std::vector<int16_t>> &Cb,
-                           const std::vector<std::vector<int16_t>> &Cr) {
+                      const std::vector<std::vector<int16_t>> &Y,
+                      const std::vector<std::vector<int16_t>> &Cb,
+                      const std::vector<std::vector<int16_t>> &Cr) {
     
     for (size_t i = 0; i < Y.size(); ++i) {
         for (size_t j = 0; j < Y[0].size(); ++j) {
@@ -48,8 +45,8 @@ void image::add_block(size_t topmost, size_t leftmost,
     }
 }
 
-std::vector<std::vector<int16_t>> image::Y_block(size_t topmost, size_t leftmost) const {
-    std::vector<std::vector<int16_t>> block(8, std::vector<int16_t>(8));
+std::array<std::array<int16_t, 8>, 8> image::Y_block(size_t topmost, size_t leftmost) const {
+    std::array<std::array<int16_t, 8>, 8> block;
 
     for (size_t i = topmost, ci = 0; ci < 8; ++i, ++ci) {
         for (size_t j = leftmost, cj = 0; cj < 8; ++j, ++cj) {
@@ -60,8 +57,8 @@ std::vector<std::vector<int16_t>> image::Y_block(size_t topmost, size_t leftmost
     return block;
 }
 
-std::vector<std::vector<int16_t>> image::Cb_block(size_t topmost, size_t leftmost) const {
-    std::vector<std::vector<int16_t>> block(8, std::vector<int16_t>(8));
+std::array<std::array<int16_t, 8>, 8> image::Cb_block(size_t topmost, size_t leftmost) const {
+    std::array<std::array<int16_t, 8>, 8> block;
 
     for (size_t i = topmost, ci = 0; ci < 8; ++i, ++ci) {
         for (size_t j = leftmost, cj = 0; cj < 8; ++j, ++cj) {
@@ -72,8 +69,8 @@ std::vector<std::vector<int16_t>> image::Cb_block(size_t topmost, size_t leftmos
     return block;
 }
 
-std::vector<std::vector<int16_t>> image::Cr_block(size_t topmost, size_t leftmost) const {
-    std::vector<std::vector<int16_t>> block(8, std::vector<int16_t>(8));
+std::array<std::array<int16_t, 8>, 8> image::Cr_block(size_t topmost, size_t leftmost) const {
+    std::array<std::array<int16_t, 8>, 8> block;
 
     for (size_t i = topmost, ci = 0; ci < 8; ++i, ++ci) {
         for (size_t j = leftmost, cj = 0; cj < 8; ++j, ++cj) {

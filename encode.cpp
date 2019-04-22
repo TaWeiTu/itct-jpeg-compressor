@@ -157,8 +157,9 @@ int main(int argc, const char **argv) {
         huff[i] = huffman::encoder((uint8_t)i);
 
     quantizer qtz[2] = {luminance(0), chrominance(1)};
+    // quantizer qtz[2] = {dummy(0), dummy(1)};
 
-    using block_type = std::vector<std::vector<std::vector<int16_t>>>;
+    using block_type = std::vector<std::array<std::array<int16_t, 8>, 8>>;
     std::vector<std::vector<block_type>> blk(hf, std::vector<block_type>(wf));
 
     int16_t last[3] = {0, 0, 0};
@@ -169,11 +170,16 @@ int main(int argc, const char **argv) {
             for (int c = 0, p = 0; c < 3; ++c) {
                 for (int x = 0; x < (int)fv[c]; ++x) {
                     for (int y = 0; y < (int)fh[c]; ++y) {
-                        std::vector<std::vector<int16_t>> block = 
+                        std::array<std::array<int16_t, 8>, 8> block = 
                             c == 0 ? img->Y_block(i * vmax * 8 + x * 8, j * hmax * 8 + y * 8) : 
                             c == 1 ? img->Cb_block(i * vmax * 8 + x * 8, j * hmax * 8 + y * 8) :
                             img->Cr_block(i * vmax * 8 + x * 8, j * hmax * 8 + y * 8);
                         blk[i][j][p] = qtz[qtid[c]].quantize(FDCT(block));
+                        // for (int x = 0; x < 8; ++x) {
+                            // for (int y = 0; y < 8; ++y)
+                                // printf("%d ", (x == 0 && y == 0 ? 0 : (int)blk[i][j][p][x][y]));
+                            // printf("\n");
+                        // }
                         std::vector<std::pair<uint8_t, int16_t>> RLP = RLC::encode_block(blk[i][j][p]);
                         for (int k = 0; k < (int)RLP.size(); ++k) {
                             uint8_t r = RLP[k].first;

@@ -14,13 +14,13 @@ std::pair<uint8_t, int16_t> RLC::decode_pixel(huffman::decoder *huf, buffer *buf
         return std::make_pair(15, 0);
 
     uint16_t offset = buf->read_bits<uint16_t>(s);
-    int16_t var = (int16_t)(offset >= (1 << (s - 1)) ? offset : -((1 << s) - offset - 1));
+    int16_t var = (int16_t)(offset >= (1 << (s - 1)) ? offset : -((int)(1 << s) - offset - 1));
 
     return std::make_pair(r, var);
 }
 
-std::vector<std::vector<int16_t>> RLC::decode_block(huffman::decoder *huf, buffer *buf) {
-    std::vector<std::vector<int16_t>> res(8, std::vector<int16_t>(8, 0));
+std::array<std::array<int16_t, 8>, 8> RLC::decode_block(huffman::decoder *huf, buffer *buf) {
+    std::array<std::array<int16_t, 8>, 8> res{};
 
     size_t ptr = 1;
     while (ptr < 64) {
@@ -44,7 +44,7 @@ std::vector<std::vector<int16_t>> RLC::decode_block(huffman::decoder *huf, buffe
     return res;
 }
 
-std::vector<std::pair<uint8_t, int16_t>> RLC::encode_block(const std::vector<std::vector<int16_t>> &block) {
+std::vector<std::pair<uint8_t, int16_t>> RLC::encode_block(const std::array<std::array<int16_t, 8>, 8> &block) {
     std::vector<std::pair<uint8_t, int16_t>> code;
 
     for (int i = 1, j = 0; i < 64; ) {
@@ -80,26 +80,23 @@ int16_t DPCM::decode(huffman::decoder *huf, buffer *buf) {
 
 quantizer::quantizer() {}
 
-quantizer::quantizer(const std::vector<std::vector<int>> &qtable): qtable(qtable) {}
+quantizer::quantizer(const std::array<std::array<int, 8>, 8> &qtable): qtable(qtable) {}
 
-quantizer::quantizer(const std::vector<std::vector<int>> &qtable, uint8_t id): id(id), qtable(qtable){}
+quantizer::quantizer(const std::array<std::array<int, 8>, 8> &qtable, uint8_t id): id(id), qtable(qtable){}
 
-std::vector<std::vector<int16_t>> quantizer::quantize(const std::vector<std::vector<float>> &tab) {
-    static const int n = (int)tab.size();
-    std::vector<std::vector<int16_t>> res(n, std::vector<int16_t>(n));
+std::array<std::array<int16_t, 8>, 8> quantizer::quantize(const std::array<std::array<float, 8>, 8> &tab) {
+    std::array<std::array<int16_t, 8>, 8> res;
 
-    for (int i = 0; i < n; ++i) {
-        for (int j = 0; j < n; ++j) 
+    for (int i = 0; i < 8; ++i) {
+        for (int j = 0; j < 8; ++j) 
             res[i][j] = (int16_t)(tab[i][j] / (float)qtable[i][j] + 0.5);
     }
     return res;
 }
 
-void quantizer::dequantize(std::vector<std::vector<int16_t>> &tab) {
-    static const int n = (int)tab.size();
-
-    for (int i = 0; i < n; ++i) {
-        for (int j = 0; j < n; ++j) 
+void quantizer::dequantize(std::array<std::array<int16_t, 8>, 8> &tab) {
+    for (int i = 0; i < 8; ++i) {
+        for (int j = 0; j < 8; ++j) 
             tab[i][j] = (int16_t)(tab[i][j] * qtable[i][j]);
     }
 }
@@ -115,10 +112,10 @@ static const float cosine[8][8] = {
     {1.00000f, -0.98079f, 0.92388f, -0.83147f, 0.70711f, -0.55557f, 0.38268f, -0.19509f}
 };
 
-std::vector<std::vector<float>> FDCT(std::vector<std::vector<int16_t>> &x) {
+std::array<std::array<float, 8>, 8> FDCT(std::array<std::array<int16_t, 8>, 8> &x) {
     static const float C0 = (float)(1. / sqrt(2));
     static const float Cu = 1.;
-    std::vector<std::vector<float>> y(8, std::vector<float>(8));
+    std::array<std::array<float, 8>, 8> y;
 
     for (int i = 0; i < 8; ++i) {
         for (int j = 0; j < 8; ++j) {
@@ -209,7 +206,7 @@ std::vector<std::vector<float>> FDCT(std::vector<std::vector<int16_t>> &x) {
     return y;
 }
 
-void IDCT(std::vector<std::vector<int16_t>> &x) {
+void IDCT(std::array<std::array<int16_t, 8>, 8> &x) {
     static const float C0 = (float)(1. / sqrt(2));
     static const float Cu = 1.;
     static const float C0u = C0 * Cu;
@@ -303,7 +300,7 @@ void IDCT(std::vector<std::vector<int16_t>> &x) {
 }
 
 quantizer luminance(uint8_t id) {
-    return quantizer({
+    return quantizer(std::array<std::array<int, 8>, 8>{{
         {16, 11, 10, 16, 24, 40, 51, 61},
         {12, 12, 14, 19, 26, 58, 60, 55},
         {14, 13, 16, 24, 40, 67, 69, 56},
@@ -312,11 +309,11 @@ quantizer luminance(uint8_t id) {
         {24, 35, 55, 64, 81, 104, 113, 92},
         {49, 64, 78, 87, 103, 121, 120, 101},
         {72, 92, 95, 98, 112, 100, 103, 99} 
-    }, id);
+    }}, id);
 }
 
 quantizer chrominance(uint8_t id) {
-    return quantizer({
+    return quantizer(std::array<std::array<int, 8>, 8>{{
         {17, 18, 24, 47, 99, 99, 99, 99},
         {18, 21, 26, 66, 99, 99, 99, 99},
         {24, 26, 56, 99, 99, 99, 99, 99},
@@ -325,5 +322,9 @@ quantizer chrominance(uint8_t id) {
         {99, 99, 99, 99, 99, 99, 99, 99},
         {99, 99, 99, 99, 99, 99, 99, 99},
         {99, 99, 99, 99, 99, 99, 99, 99}
-    }, id);
+    }}, id);
+}
+
+quantizer dummy(uint8_t id) {
+    return quantizer(std::array<std::array<int, 8>, 8>(), id);
 }

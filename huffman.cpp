@@ -4,7 +4,7 @@
 FILE *huffp = fopen("huffman2.txt", "w");
 #endif
 
-huffman::decoder::decoder(const std::vector<std::vector<uint8_t>> &symbol) {
+huffman::decoder::decoder(const std::array<std::vector<uint8_t>, 16> &symbol) {
     maps.clear();
     int mask = 0;
     for (int i = 0; i < 16; ++i) {
@@ -107,7 +107,7 @@ void huffman::encoder::calculate(std::vector<std::pair<size_t, uint8_t>> &symb) 
     }
 }
 
-void huffman::encoder::ensure(std::vector<size_t> &cnt, const size_t limit) {
+void huffman::encoder::ensure(std::array<size_t, 257> &cnt, const size_t limit) {
     for (int i = (int)limit + 1; i < 257; ++i)
         cnt[limit] += cnt[i];
 
@@ -146,7 +146,7 @@ void huffman::encoder::encode() {
     // for (int i = 0; i < (int)symb.size(); ++i)
         // fprintf(stderr, "symb[i].first = %d\n", (int)symb[i].first);
 
-    std::vector<size_t> cnt(257, 0);
+    std::array<size_t, 257> cnt{}; 
     for (int i = 0; i < (int)symb.size(); ++i)
         cnt[symb[i].first]++;
 

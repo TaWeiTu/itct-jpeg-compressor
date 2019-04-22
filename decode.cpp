@@ -1,3 +1,4 @@
+#include <array>
 #include <cassert>
 #include <cstdint>
 #include <cstdio>
@@ -121,7 +122,7 @@ int main(int argc, const char **argv) {
                     assert(th < 4);
                     bytes++;
 
-                    std::vector<std::vector<uint8_t>> symbol(16);
+                    std::array<std::vector<uint8_t>, 16> symbol;
 
                     for (int i = 0; i < 16; ++i) {
                         uint8_t codeword = buf->read_byte();
@@ -170,7 +171,7 @@ int main(int argc, const char **argv) {
                     assert(tq < 4);
                     bytes++;
 
-                    std::vector<std::vector<int>> qtab(8, std::vector<int>(8));
+                    std::array<std::array<int, 8>, 8> qtab;
                     
                     for (int k = 0; k < 64; ++k) {
                         uint8_t i = zig[k], j = zag[k];
@@ -244,7 +245,17 @@ int main(int argc, const char **argv) {
                             for (int i = 0; i < (int)fv[c]; ++i) {
                                 for (int j = 0; j < (int)fh[c]; ++j) {
                                     int16_t diff = DPCM::decode(&dc[dcid[c]], buf);
-                                    std::vector<std::vector<int16_t>> block = RLC::decode_block(&ac[acid[c]], buf);
+                                    std::array<std::array<int16_t, 8>, 8> block = RLC::decode_block(&ac[acid[c]], buf);
+                                    /* for (int x = 0; x < 8; ++x) {
+                                        for (int y = 0; y < 8; ++y) {
+                                            // if (block[x][y] < 0 && block[x][y] < -300)
+                                                // block[x][y] += 767;
+                                            // else if (block[x][y] > 0 && block[x][y] > 300)
+                                                // block[x][y] -= 767;
+                                            printf("%d ", (int)block[x][y]);
+                                        }
+                                        printf("\n");
+                                    } */
 
                                     int16_t real_diff = (int16_t)(last_diff[c] + diff);
                                     last_diff[c] = (int16_t)(last_diff[c] + diff);
@@ -342,7 +353,6 @@ int main(int argc, const char **argv) {
                 uint8_t width_t  = buf->read_byte();
                 uint8_t height_t = buf->read_byte();
 
-                
                 for (int i = 0; i < (int)width_t; ++i) {
                     for (int j = 0; j < (int)height_t; ++j) {
                         // TODO: make it useful

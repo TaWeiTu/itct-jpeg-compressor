@@ -6,10 +6,10 @@ images
 decode
 encode
 *.dSYM
-log
 *.ppm
 *.bmp
 bmp_format
 *.txt
 hex
 *.jpg
+*log*
