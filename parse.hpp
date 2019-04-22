@@ -2,17 +2,18 @@
 #define PARSE_HPP_INCLUDED
 
 
+#include <array>
 #include <map>
 #include <string>
 
 void usage() {
     fprintf(stderr, "[Usage] ./decode [-f format=bmp] -s source [-d destination=output.bmp]\n");
-    fprintf(stderr, "[Usage] ./encode [-f format=bmp] -s source [-d destination=output.bmp] [-p subsampling=1:1:1]\n");
+    fprintf(stderr, "[Usage] ./encode [-f format=bmp] -s source [-d destination=output.bmp] [-p subsampling=0]\n");
     exit(1);
 }
 
-uint8_t fh[3] = {1, 1, 1};
-uint8_t fv[3] = {1, 1, 1};
+std::array<uint8_t, 3> fh = {1, 1, 1};
+std::array<uint8_t, 3> fv = {1, 1, 1};
 
 std::map<std::string, std::string> parse(int argc, const char **argv) {
     std::map<std::string, std::string> res = {
@@ -62,6 +63,24 @@ std::map<std::string, std::string> parse(int argc, const char **argv) {
 
                 std::string dest(argv[i + 1]);
                 res["dest"] = dest;
+                ++i;
+                break;
+            }
+
+            case 4: {
+                if (i + 1 == argc) 
+                    usage();
+
+                std::string mode(argv[i + 1]);
+                if (mode == "0") {
+                    fh = {1, 1, 1};
+                    fv = {1, 1, 1};
+                } else if (mode == "1") {
+                    fh = {2, 1, 1};
+                    fv = {2, 1, 1};
+                } else {
+                    usage();
+                }
                 ++i;
                 break;
             }

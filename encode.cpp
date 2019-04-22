@@ -143,8 +143,8 @@ int main(int argc, const char **argv) {
 
     img->read(args["src"].c_str());
 
-    uint8_t vmax = *std::max_element(fv, fv + 3);
-    uint8_t hmax = *std::max_element(fh, fh + 3);
+    uint8_t vmax = *std::max_element(fv.begin(), fv.end());
+    uint8_t hmax = *std::max_element(fh.begin(), fh.end());
     size_t block_per_mcu = 0;
     for (int i = 0; i < 3; ++i)
         block_per_mcu += (size_t)(fv[i] * fh[i]);
