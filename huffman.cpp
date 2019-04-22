@@ -1,25 +1,19 @@
 #include "huffman.hpp"
 
-#ifdef DEBUG
-FILE *huffp = fopen("huffman2.txt", "w");
-#endif
 
 huffman::decoder::decoder(const std::array<std::vector<uint8_t>, 16> &symbol) {
     maps.clear();
+    // memset(has_val, false, sizeof(has_val));
     int mask = 0;
     for (int i = 0; i < 16; ++i) {
         for (int j = 0; j < (int)symbol[i].size(); ++j) {
             maps[std::make_pair(mask, i + 1)] = symbol[i][j];
+            // table[mask][i + 1] = symbol[i][j];
+            // has_val[mask][i + 1] = true;
             mask++;
         }
         mask <<= 1;
     }
-
-#ifdef DEBUG
-    for (auto it : maps) {
-        fprintf(huffp, "%d (%d) -> %d\n", it.first.first, (int)it.first.second, (int)it.second);
-    }
-#endif
 }
 
 uint8_t huffman::decoder::next(buffer *buf) {
@@ -32,6 +26,8 @@ uint8_t huffman::decoder::next(buffer *buf) {
 
         if (it != maps.end()) 
             return it->second;
+        // if (has_val[mask][leng])
+            // return table[mask][leng];
 
         if (leng > 16) {
             fprintf(stderr, "Codelength too long\n");

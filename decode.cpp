@@ -2,6 +2,7 @@
 #include <cassert>
 #include <cstdint>
 #include <cstdio>
+#include <ctime>
 #include <cstdlib>
 #include <cstring>
 #include <unistd.h>
@@ -17,7 +18,6 @@
 
 
 // TODO: Deal with DRI
-//
 
 
 int main(int argc, const char **argv) {
@@ -301,31 +301,12 @@ int main(int argc, const char **argv) {
                             memset(last, 0, sizeof(last));
                             RSTn = 0;
                         }
-
-                        
-                        // fprintf(stderr, "Y.size() = %d\n", (int)Y.size());
-                        /* for (int i = 0; i < (int)Y.size(); ++i) {
-                            for (int j = 0; j < (int)Y[0].size(); ++j) {
-                                if (Y[i][j] == EMPTY)
-                                    Y[i][j] = Y[i % 8][j % 8];
-                                if (Cb[i][j] == EMPTY)
-                                    Cb[i][j] = Cb[i % 8][j % 8];
-                                if (Cr[i][j] == EMPTY)
-                                    Cr[i][j] = Cr[i % 8][j % 8];
-                            }
-                        } */
-
                         img->add_block(row * (vmax * 8), col * (hmax * 8), Y, Cb, Cr);
                     }
                 }
 
                 buf->end_processing_mcu();
                 buf->flush();
-
-#ifdef DEBUG
-                fprintf(stderr, "fpos = %d flen = %d\n", (int)buf->fpos, (int)buf->flen);
-                fprintf(stderr, "done reading MCU\n");
-#endif
 
                 break;
             }
@@ -346,12 +327,16 @@ int main(int argc, const char **argv) {
                     exit(1);
                 }
 
-                // uint16_t version = buf->read_bytes<uint16_t>(2);
-                // uint8_t unit = buf->read_byte();
-                // uint16_t x_density = buf->read_bytes<uint16_t>(2);
-                // uint16_t y_density = buf->read_bytes<uint16_t>(2);
+#ifdef DEBUG
+                uint16_t version = buf->read_bytes<uint16_t>(2);
+                uint8_t unit = buf->read_byte();
+                uint16_t x_density = buf->read_bytes<uint16_t>(2);
+                uint16_t y_density = buf->read_bytes<uint16_t>(2);
+                fprintf(stderr, "version = %d unit = %d x_density = %d y_density = %d\n", (int)version, (int)unit, 
+                                                                                          (int)x_density, (int)y_density);
+#else
                 buf->skip_bytes(7);
-                // fprintf(stderr, "version = %d unit = %d x_density = %d y_density = %d\n", (int)version, (int)unit, (int)x_density, (int)y_density);
+#endif
                 uint8_t width_t  = buf->read_byte();
                 uint8_t height_t = buf->read_byte();
 
@@ -369,9 +354,6 @@ int main(int argc, const char **argv) {
                     fprintf(stderr, "[Error] SOI not found\n");
                     exit(1);
                 }
-#ifdef DEBUG
-                fprintf(stderr, "[Debug] COM\n");
-#endif
                 // comment
                 size_t leng = buf->read_bytes<size_t>(2);
 
@@ -386,9 +368,6 @@ int main(int argc, const char **argv) {
                     fprintf(stderr, "[Error] SOI not found\n");
                     exit(1);
                 }
-#ifdef DEBUG
-                fprintf(stderr, "[Debug] EOI\n");
-#endif
                 // end of image
                 eoi = true;
                 break;
@@ -397,6 +376,7 @@ int main(int argc, const char **argv) {
             default:
                 fprintf(stderr, "[Error] Wrong format, unexpected byte 0x%hhx\n", byte2);
                 exit(1);
+
         }
     }
 

@@ -1,9 +1,6 @@
 #include "image.hpp"
 
 
-uint8_t byte_;
-#define WRITE(b) do { byte_ = b; fwrite(&byte_, 1, 1, fp); } while (false)
-
 pixel::pixel() {} pixel::pixel(uint8_t r, uint8_t g, uint8_t b): r(r), g(g), b(b) {
     y  = (int16_t)(+0.299    * r + 0.587    * g + 0.114    * b - 128 + 0.5);
     cb = (int16_t)(-0.168736 * r - 0.331264 * g + 0.5      * b + 0.5);
@@ -80,8 +77,8 @@ std::array<std::array<int16_t, 8>, 8> image::Cr_block(size_t topmost, size_t lef
     return block;
 }
 
-void PPM::write(const char *filename) const {
-    FILE *fp = fopen(filename, "wb");
+void PPM::write(const char *filename) {
+    fp = fopen(filename, "wb");
     if (!fp) {
         fprintf(stderr, "[Error] Unable to open file %s\n", filename);
         exit(1);
@@ -101,16 +98,12 @@ void PPM::write(const char *filename) const {
     fclose(fp);
 }
 
-void BMP::write(const char *filename) const {
-    FILE *fp = fopen(filename, "wb"); 
+void BMP::write(const char *filename) {
+    fp = fopen(filename, "wb"); 
     if (!fp) { 
         fprintf(stderr, "[Error] Can't write BMP\n");
         exit(1);
     }
-
-#ifdef DEBUG
-    fprintf(stdout, "height = %d width = %d\n", (int)ht, (int)wd);
-#endif
 
     size_t padded = (3 * wd + 3) / 4 * 4;
     size_t size = 14 + 12 + ht * padded;
@@ -129,10 +122,6 @@ void BMP::write(const char *filename) const {
     WRITE(0x01); WRITE(0x00);
     WRITE(0x18); WRITE(0x00);
 
-#ifdef DEBUG
-    fprintf(stdout, "padded = %d\n", (int)padded);
-#endif
-
     for (int i = (int)ht - 1; i >= 0; --i) {
         size_t bytes = 0;
         for (int j = 0; j < (int)wd; ++j) {
@@ -148,11 +137,10 @@ void BMP::write(const char *filename) const {
         }
     }
 
-    fclose(fp);
 }
 
 void PPM::read(const char *filename) {
-    FILE *fp = fopen(filename, "rb"); 
+    fp = fopen(filename, "rb"); 
     if (!fp) {
         fprintf(stderr, "[Error] Unable to read file %s\n", filename);
         exit(1);
@@ -178,4 +166,12 @@ void PPM::read(const char *filename) {
 
 void BMP::read(const char *filename) {
 
+}
+
+void image::WRITE(uint8_t byte) {
+    *ptr++ = byte;
+    if (ptr - buffer == SIZE) {
+        fwrite(buffer, 1, SIZE, fp);
+        ptr = buffer;
+    }
 }

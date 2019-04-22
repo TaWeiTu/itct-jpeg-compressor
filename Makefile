@@ -14,22 +14,22 @@ decode: codec.o huffman.o buffer.hpp parse.hpp image.o decode.cpp
 encode: codec.o huffman.o buffer.hpp parse.hpp image.o encode.cpp
 	$(CXX) image.o huffman.o codec.o encode.cpp -o encode $(CFLAGS)
 
-huffman.o: huffman.cpp
+huffman.o: huffman.cpp huffman.hpp
 	$(CXX) -c -o huffman.o huffman.cpp $(CFLAGS)
 
-codec.o: codec.cpp
+codec.o: codec.cpp codec.hpp
 	$(CXX) -c -o codec.o codec.cpp $(CFLAGS)
 
-image.o: image.cpp
+image.o: image.cpp image.hpp
 	$(CXX) -c -o image.o image.cpp $(CFLAGS)
 
-huffman_dbg.o: huffman.cpp
+huffman_dbg.o: huffman.cpp huffman.hpp
 	$(CXX) -c -o huffman_dbg.o huffman.cpp $(DBGFLAGS)
 
-codec_dbg.o: codec.cpp
+codec_dbg.o: codec.cpp codec.hpp
 	$(CXX) -c -o codec_dbg.o codec.cpp $(DBGFLAGS)
 
-image_dbg.o: image.cpp
+image_dbg.o: image.cpp image.hpp
 	$(CXX) -c -o image_dbg.o image.cpp $(DBGFLAGS)
 
 .PHONY: clean
