@@ -3,7 +3,6 @@
 
 #include <cassert>
 #include <cmath>
-#include <complex>
 #include <cstdint>
 #include <utility>
 #include <vector>
@@ -22,15 +21,14 @@ namespace RLC {
 namespace DPCM {
     std::vector<int16_t> decode(const std::vector<uint8_t> &, huffman::decoder *);
     int16_t decode(huffman::decoder*, buffer*);
-    
 }
 
 struct quantizer {
     uint8_t id = 0;
     std::array<std::array<int, 8>, 8> qtable;
     quantizer();
-    quantizer(const std::array<std::array<int, 8>, 8> &);
-    quantizer(const std::array<std::array<int, 8>, 8> &, uint8_t);
+    quantizer(std::array<std::array<int, 8>, 8> &&);
+    quantizer(std::array<std::array<int, 8>, 8> &&, uint8_t);
     std::array<std::array<int16_t, 8>, 8> quantize(const std::array<std::array<float, 8>, 8> &);
     void dequantize(std::array<std::array<int16_t, 8>, 8> &);
 };

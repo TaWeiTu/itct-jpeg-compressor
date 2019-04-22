@@ -88,10 +88,10 @@ int main(int argc, const char **argv) {
 
                 uint8_t cnt = (uint8_t)buf->read_byte();
                 for (int i = 0; i < (int)cnt; ++i) {
-                    uint8_t cid = buf->read_byte();
-                    uint8_t hor = buf->read_bits<uint8_t>(4);
-                    uint8_t ver = buf->read_bits<uint8_t>(4);
-                    uint8_t nqt = buf->read_byte();
+                    uint8_t cid = buf->read_byte(); // color ID
+                    uint8_t hor = buf->read_bits<uint8_t>(4); // horizontal subsampling rate
+                    uint8_t ver = buf->read_bits<uint8_t>(4); // vertical subsampling rate
+                    uint8_t nqt = buf->read_byte(); // quantization table ID
 
                     hmax = std::max(hmax, hor);
                     vmax = std::max(vmax, ver);
@@ -179,7 +179,7 @@ int main(int argc, const char **argv) {
                         bytes += pq + 1;
                     }
                     
-                    qtz[tq] = quantizer(qtab);
+                    qtz[tq] = quantizer(std::move(qtab));
                 }
                 break;
             }
@@ -227,18 +227,19 @@ int main(int argc, const char **argv) {
                 size_t hf = (ht + (vmax * 8) - 1) / (vmax * 8);
                 size_t wf = (wd + (hmax * 8) - 1) / (hmax * 8);
 
-                int16_t last_diff[6] = {0, 0, 0, 0, 0, 0};
+                int16_t last[6];
+                memset(last, 0, sizeof(last));
                 buf->start_processing_mcu();
 
                 size_t RSTn = 0;
                 const int16_t EMPTY = 32767;
-                std::vector<std::vector<int16_t>> Y(8 * vmax, std::vector<int16_t>(8 * hmax, EMPTY));
+                std::vector<std::vector<int16_t>>  Y(8 * vmax, std::vector<int16_t>(8 * hmax, EMPTY));
                 std::vector<std::vector<int16_t>> Cb(8 * vmax, std::vector<int16_t>(8 * hmax, EMPTY));
                 std::vector<std::vector<int16_t>> Cr(8 * vmax, std::vector<int16_t>(8 * hmax, EMPTY));
 
                 for (int row = 0; row < (int)hf; ++row) {
                     for (int col = 0; col < (int)wf; ++col) {
-                        std::fill(Y.begin(), Y.end(),   std::vector<int16_t>(8 * hmax, EMPTY));
+                        std::fill( Y.begin(),  Y.end(), std::vector<int16_t>(8 * hmax, EMPTY));
                         std::fill(Cb.begin(), Cb.end(), std::vector<int16_t>(8 * hmax, EMPTY));
                         std::fill(Cr.begin(), Cr.end(), std::vector<int16_t>(8 * hmax, EMPTY));
                         for (int c = 1; c <= 3; ++c) {
@@ -246,20 +247,9 @@ int main(int argc, const char **argv) {
                                 for (int j = 0; j < (int)fh[c]; ++j) {
                                     int16_t diff = DPCM::decode(&dc[dcid[c]], buf);
                                     std::array<std::array<int16_t, 8>, 8> block = RLC::decode_block(&ac[acid[c]], buf);
-                                    /* for (int x = 0; x < 8; ++x) {
-                                        for (int y = 0; y < 8; ++y) {
-                                            // if (block[x][y] < 0 && block[x][y] < -300)
-                                                // block[x][y] += 767;
-                                            // else if (block[x][y] > 0 && block[x][y] > 300)
-                                                // block[x][y] -= 767;
-                                            printf("%d ", (int)block[x][y]);
-                                        }
-                                        printf("\n");
-                                    } */
 
-                                    int16_t real_diff = (int16_t)(last_diff[c] + diff);
-                                    last_diff[c] = (int16_t)(last_diff[c] + diff);
-                                    block[0][0] = real_diff;
+                                    int16_t dc = (int16_t)(last[c] + diff);
+                                    block[0][0] = last[c] = dc;
 
                                     qtz[qt[c]].dequantize(block);
                                     IDCT(block);
@@ -267,22 +257,34 @@ int main(int argc, const char **argv) {
                                     switch (c) {
                                         case 1:
                                             for (int y = 0; y < 8; ++y) {
-                                                for (int x = 0; x < 8; ++x)
-                                                    Y[i * 8 + y][j * 8 + x] = block[y][x];
+                                                for (int x = 0; x < 8; ++x) {
+                                                    for (int p = 0; p < vmax / fv[c]; ++p) {
+                                                        for (int q = 0; q < hmax / fh[c]; ++q)
+                                                            Y[i * 8 + y * vmax / fv[c] + p][j * 8 + x * hmax / fh[c] + q] = block[y][x];
+                                                    }
+                                                }
                                             }
                                             break;
 
                                         case 2:
                                             for (int y = 0; y < 8; ++y) {
-                                                for (int x = 0; x < 8; ++x) 
-                                                    Cb[i * 8 + y][j * 8 + x] = block[y][x];
+                                                for (int x = 0; x < 8; ++x) {
+                                                    for (int p = 0; p < vmax / fv[c]; ++p) {
+                                                        for (int q = 0; q < hmax / fh[c]; ++q)
+                                                            Cb[i * 8 + y * vmax / fv[c] + p][j * 8 + x * hmax / fh[c] + q] = block[y][x];
+                                                    }
+                                                }
                                             }
                                             break;
 
                                         case 3:
                                             for (int y = 0; y < 8; ++y) {
-                                                for (int x = 0; x < 8; ++x) 
-                                                    Cr[i * 8 + y][j * 8 + x] = block[y][x];
+                                                for (int x = 0; x < 8; ++x) {
+                                                    for (int p = 0; p < vmax / fv[c]; ++p) {
+                                                        for (int q = 0; q < hmax / fh[c]; ++q)
+                                                            Cr[i * 8 + y * vmax / fv[c] + p][j * 8 + x * hmax / fh[c] + q] = block[y][x];
+                                                    }
+                                                }
                                             }
                                             break;
 
@@ -296,13 +298,13 @@ int main(int argc, const char **argv) {
 
                         ++RSTn;
                         if (itvl > 0 && RSTn == itvl) {
-                            memset(last_diff, 0, sizeof(last_diff));
+                            memset(last, 0, sizeof(last));
                             RSTn = 0;
                         }
 
                         
                         // fprintf(stderr, "Y.size() = %d\n", (int)Y.size());
-                        for (int i = 0; i < (int)Y.size(); ++i) {
+                        /* for (int i = 0; i < (int)Y.size(); ++i) {
                             for (int j = 0; j < (int)Y[0].size(); ++j) {
                                 if (Y[i][j] == EMPTY)
                                     Y[i][j] = Y[i % 8][j % 8];
@@ -311,7 +313,7 @@ int main(int argc, const char **argv) {
                                 if (Cr[i][j] == EMPTY)
                                     Cr[i][j] = Cr[i % 8][j % 8];
                             }
-                        }
+                        } */
 
                         img->add_block(row * (vmax * 8), col * (hmax * 8), Y, Cb, Cr);
                     }

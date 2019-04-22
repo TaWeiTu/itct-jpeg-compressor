@@ -205,6 +205,7 @@ int main(int argc, const char **argv) {
 #endif
 
     buffer *buf = new buffer(fopen(args["dest"].c_str(), "wb"));
+
     write_jpeg(buf, SOI);
     write_jpeg(buf, APP);
     for (int i = 0; i < 2; ++i)

@@ -80,9 +80,9 @@ int16_t DPCM::decode(huffman::decoder *huf, buffer *buf) {
 
 quantizer::quantizer() {}
 
-quantizer::quantizer(const std::array<std::array<int, 8>, 8> &qtable): qtable(qtable) {}
+quantizer::quantizer(std::array<std::array<int, 8>, 8> &&qtable): qtable(qtable) {}
 
-quantizer::quantizer(const std::array<std::array<int, 8>, 8> &qtable, uint8_t id): id(id), qtable(qtable){}
+quantizer::quantizer(std::array<std::array<int, 8>, 8> &&qtable, uint8_t id): id(id), qtable(qtable){}
 
 std::array<std::array<int16_t, 8>, 8> quantizer::quantize(const std::array<std::array<float, 8>, 8> &tab) {
     std::array<std::array<int16_t, 8>, 8> res;
