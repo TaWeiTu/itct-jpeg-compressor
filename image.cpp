@@ -155,9 +155,8 @@ void PPM::read(const char *filename) {
 
     for (int i = 0; i < (int)ht; ++i) {
         for (int j = 0; j < (int)wd; ++j) {
-            uint8_t r = (uint8_t)fgetc(fp);
-            uint8_t g = (uint8_t)fgetc(fp);
-            uint8_t b = (uint8_t)fgetc(fp);
+            uint8_t r = READ(); uint8_t g = READ();
+            uint8_t b = READ();
             pix[i][j] = pixel(r, g, b);
         }
     }
@@ -174,4 +173,13 @@ void image::WRITE(uint8_t byte) {
         fwrite(buffer, 1, SIZE, fp);
         ptr = buffer;
     }
+}
+
+uint8_t image::READ() {
+    static uint8_t *end = buffer;
+    if (ptr == end) {
+        end = buffer + fread(buffer, 1, SIZE, fp);
+        ptr = buffer;
+    }
+    return *ptr++;
 }

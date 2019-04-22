@@ -42,6 +42,7 @@ struct image {
     std::array<std::array<int16_t, 8>, 8> Cr_block(size_t, size_t) const;
 
     void WRITE(uint8_t);
+    uint8_t READ();
 };
 
 struct PPM: image {
