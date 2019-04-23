@@ -132,7 +132,7 @@ int main(int argc, const char **argv) {
                 
                 while (bytes < leng) {
                     uint8_t tc = buf->read_bits<uint8_t>(4); // type: 0 for DC and 1 for AC
-                    uint8_t th = buf->read_bits<uint8_t>(4);
+                    uint8_t th = buf->read_bits<uint8_t>(4); // huffman table ID
                     assert(tc < 2);
                     assert(th < 4);
                     bytes++;
@@ -270,43 +270,14 @@ int main(int argc, const char **argv) {
                                     IDCT(block);
                                     debug(block);
 
-                                    switch (c) {
-                                        case 1:
-                                            for (int y = 0; y < 8; ++y) {
-                                                for (int x = 0; x < 8; ++x) {
-                                                    for (int p = 0; p < vmax / fv[c]; ++p) {
-                                                        for (int q = 0; q < hmax / fh[c]; ++q)
-                                                            Y[i * 8 + y * vmax / fv[c] + p][j * 8 + x * hmax / fh[c] + q] = block[y][x];
-                                                    }
-                                                }
+                                    std::vector<std::vector<int16_t>> *dest = c == 1 ? &Y : c == 2 ? &Cb : &Cr;
+                                    for (int y = 0; y < 8; ++y) {
+                                        for (int x = 0; x < 8; ++x) {
+                                            for (int p = 0; p < vmax / fv[c]; ++p) {
+                                                for (int q = 0; q < hmax / fh[c]; ++q)
+                                                    (*dest)[i * 8 + y * vmax / fv[c] + p][j * 8 + x * hmax / fh[c] + q] = block[y][x];
                                             }
-                                            break;
-
-                                        case 2:
-                                            for (int y = 0; y < 8; ++y) {
-                                                for (int x = 0; x < 8; ++x) {
-                                                    for (int p = 0; p < vmax / fv[c]; ++p) {
-                                                        for (int q = 0; q < hmax / fh[c]; ++q)
-                                                            Cb[i * 8 + y * vmax / fv[c] + p][j * 8 + x * hmax / fh[c] + q] = block[y][x];
-                                                    }
-                                                }
-                                            }
-                                            break;
-
-                                        case 3:
-                                            for (int y = 0; y < 8; ++y) {
-                                                for (int x = 0; x < 8; ++x) {
-                                                    for (int p = 0; p < vmax / fv[c]; ++p) {
-                                                        for (int q = 0; q < hmax / fh[c]; ++q)
-                                                            Cr[i * 8 + y * vmax / fv[c] + p][j * 8 + x * hmax / fh[c] + q] = block[y][x];
-                                                    }
-                                                }
-                                            }
-                                            break;
-
-                                        default:
-                                            fprintf(stderr, "[Error] Unexpected color, expect Y = 1, Cb = 2, Cr = 3\n");
-                                            exit(1);
+                                        }
                                     }
                                 }
                             }

@@ -37,7 +37,7 @@ struct image {
                                    const std::vector<std::vector<int16_t>> &,
                                    const std::vector<std::vector<int16_t>> &);
 
-    std::array<std::array<int16_t, 8>, 8> Y_block(size_t, size_t, size_t, size_t) const;
+    std::array<std::array<int16_t, 8>, 8>  Y_block(size_t, size_t, size_t, size_t) const;
     std::array<std::array<int16_t, 8>, 8> Cb_block(size_t, size_t, size_t, size_t) const;
     std::array<std::array<int16_t, 8>, 8> Cr_block(size_t, size_t, size_t, size_t) const;
 

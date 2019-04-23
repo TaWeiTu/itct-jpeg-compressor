@@ -26,8 +26,6 @@ uint8_t huffman::decoder::next(buffer *buf) {
 
         if (it != maps.end()) 
             return it->second;
-        // if (has_val[mask][leng])
-            // return table[mask][leng];
 
         if (leng > 16) {
             fprintf(stderr, "Codelength too long\n");
@@ -54,13 +52,15 @@ void huffman::encoder::add_freq(uint8_t sym, size_t f = 1) {
     freq[sym] += f;
 }
 
-// referenced from https://github.com/kornelski/jpeg-compressor/blob/master/jpge.cpp
 // TODO: should refactor
-void huffman::encoder::calculate(std::vector<std::pair<size_t, uint8_t>> &symb) {
-    if ((int)symb.size() == 1) {
-        symb[0].first = 1;
-        return;
+void huffman::encoder::encode() {
+    std::vector<std::pair<size_t, uint8_t>> symb = {{1, 0}};
+    for (int i = 0; i < 256; ++i) {
+        if (freq[i] > 0)
+            symb.emplace_back(freq[i], i + 1);
     }
+    
+    std::sort(symb.begin(), symb.end());
 
     symb[0].first += symb[1].first;
     int n = (int)symb.size();
@@ -85,74 +85,48 @@ void huffman::encoder::calculate(std::vector<std::pair<size_t, uint8_t>> &symb) 
         symb[i].first = symb[symb[i].first].first + 1;
     }
 
-    int avbl = 1, used = 0, dep = 0, nxt = n - 1;
+    int spac = 1, used = 0, dep = 0, nxt = n - 1;
     root = n - 2;
 
-    while (avbl > 0) {
+    while (spac > 0) {
         while (root >= 0 && (int)symb[root].first == dep) {
             used++;
             root--;
         }
-        while (avbl > used) {
+        while (spac > used) {
             symb[nxt--].first = dep;
-            avbl--;
+            spac--;
         }
-        avbl = 2 * used;
+        spac = 2 * used;
         dep++;
         used = 0;
     }
-}
-
-void huffman::encoder::ensure(std::array<size_t, 257> &cnt, const size_t limit) {
-    for (int i = (int)limit + 1; i < 257; ++i)
-        cnt[limit] += cnt[i];
-
-    size_t sum = 0;
-    for (int i = (int)limit; i > 0; --i) 
-        sum += ((size_t)cnt[i] << (limit - i));
-
-    while (sum != (1ull << limit)) {
-        cnt[limit]--;
-        for (int i = (int)limit - 1; i > 0; --i) {
-            if (cnt[i]) {
-                cnt[i]--;
-                cnt[i + 1] += 2;
-                break;
-            }
-        }
-        sum--;
-    }
-}
-
-
-void huffman::encoder::encode() {
-    std::vector<std::pair<size_t, uint8_t>> symb = {{1, 0}};
-    for (int i = 0; i < 256; ++i) {
-        if (freq[i] > 0)
-            symb.emplace_back(freq[i], i + 1);
-    }
-    
-    std::sort(symb.begin(), symb.end());
-    calculate(symb);
-
-#ifdef DEBUG
-    fprintf(stderr, "done calculate\n");
-#endif
-
-    // for (int i = 0; i < (int)symb.size(); ++i)
-        // fprintf(stderr, "symb[i].first = %d\n", (int)symb[i].first);
 
     std::array<size_t, 257> cnt{}; 
     for (int i = 0; i < (int)symb.size(); ++i)
         cnt[symb[i].first]++;
 
     static const size_t limit = 16;
-    if ((int)symb.size() > 1)
-        ensure(cnt, limit);
+    if ((int)symb.size() > 1) {
+        for (int i = (int)limit + 1; i < 257; ++i)
+            cnt[limit] += cnt[i];
 
-#ifdef DEBUG
-    fprintf(stderr, "done ensure\n");
-#endif
+        size_t sum = 0;
+        for (int i = (int)limit; i > 0; --i) 
+            sum += ((size_t)cnt[i] << (limit - i));
+
+        while (sum != (1ull << limit)) {
+            cnt[limit]--;
+            for (int i = (int)limit - 1; i > 0; --i) {
+                if (cnt[i]) {
+                    cnt[i]--;
+                    cnt[i + 1] += 2;
+                    break;
+                }
+            }
+            sum--;
+        }
+    }
 
     std::vector<uint8_t> v;
     for (int i = (int)symb.size() - 1; i >= 1; --i) 
@@ -192,8 +166,8 @@ void huffman::encoder::encode() {
         fprintf(stderr, "\n");
     }
     fprintf(stderr, "exit\n");
-#endif
     assert(decodable());
+#endif
 }
 
 bool huffman::encoder::decodable() const {

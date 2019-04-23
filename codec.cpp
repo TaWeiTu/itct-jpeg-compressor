@@ -87,7 +87,7 @@ quantizer::quantizer(std::array<std::array<int, 8>, 8> &&qtable, uint8_t id): id
 void quantizer::quantize(std::array<std::array<int16_t, 8>, 8> &tab) {
     for (int i = 0; i < 8; ++i) {
         for (int j = 0; j < 8; ++j) 
-            tab[i][j] = (int16_t)(tab[i][j] / qtable[i][j]);
+            tab[i][j] = (int16_t)(1.0 * tab[i][j] / qtable[i][j] + 0.5);
     }
 }
 

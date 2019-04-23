@@ -194,7 +194,6 @@ int main(int argc, const char **argv) {
 
                         FDCT(block);
                         qtz[qtid[c]].quantize(block);
-                        // blk[i][j][p] = qtz[qtid[c]].quantize(FDCT(block));
                         blk[i][j][p] = block;
                         debug(blk[i][j][p]);
                         std::vector<std::pair<uint8_t, int16_t>> RLP = RLC::encode_block(blk[i][j][p]);

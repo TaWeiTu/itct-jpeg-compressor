@@ -2,7 +2,7 @@
 #define HUFFMAN_HPP_INCLUDED
 
 #include <algorithm>
-#include <array>
+#include <array> 
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
@@ -38,8 +38,6 @@ namespace huffman {
 
         void add_freq(uint8_t, size_t);
         void encode();
-        void calculate(std::vector<std::pair<size_t, uint8_t>> &);
-        void ensure(std::array<size_t, 257> &, size_t);
         bool decodable() const;
     };
 }

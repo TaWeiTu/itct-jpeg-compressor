@@ -15,6 +15,8 @@ void usage() {
 std::array<uint8_t, 3> fh = {1, 1, 1};
 std::array<uint8_t, 3> fv = {1, 1, 1};
 
+// TODO: different default destination based on type.
+
 std::map<std::string, std::string> parse(int argc, const char **argv) {
     std::map<std::string, std::string> res = {
         {"dest", "output.bmp"},
