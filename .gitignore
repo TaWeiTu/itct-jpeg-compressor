@@ -13,3 +13,5 @@ bmp_format
 hex
 *.jpg
 *log*
+*.hex
+*.out

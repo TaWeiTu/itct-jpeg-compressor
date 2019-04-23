@@ -13,6 +13,22 @@ const uint8_t acid[3] = {0, 1, 1};
 const uint8_t dcid[3] = {2, 3, 3};
 const uint8_t qtid[3] = {0, 1, 1};
 
+#ifdef DEBUG
+FILE *dbg = fopen("encode.out", "w");
+
+void debug(std::array<std::array<int16_t, 8>, 8> block) {
+    for (int i = 0; i < 8; ++i) {
+        for (int j = 0; j < 8; ++j)
+            fprintf(dbg, "%d ", (int)block[i][j]);
+    }
+    fprintf(dbg, "\n");
+}
+#else
+void debug(...) {
+
+}
+#endif
+
 void write_jpeg(buffer *buf, uint8_t marker, void *ptr = nullptr) {
     // write jpeg marker
     buf->write_byte(0xFF);
@@ -172,15 +188,15 @@ int main(int argc, const char **argv) {
                 for (int x = 0; x < (int)fv[c]; ++x) {
                     for (int y = 0; y < (int)fh[c]; ++y) {
                         std::array<std::array<int16_t, 8>, 8> block = 
-                            c == 0 ? img->Y_block(i * vmax * 8 + x * 8, j * hmax * 8 + y * 8) : 
-                            c == 1 ? img->Cb_block(i * vmax * 8 + x * 8, j * hmax * 8 + y * 8) :
-                            img->Cr_block(i * vmax * 8 + x * 8, j * hmax * 8 + y * 8);
-                        blk[i][j][p] = qtz[qtid[c]].quantize(FDCT(block));
-                        // for (int x = 0; x < 8; ++x) {
-                            // for (int y = 0; y < 8; ++y)
-                                // printf("%d ", (x == 0 && y == 0 ? 0 : (int)blk[i][j][p][x][y]));
-                            // printf("\n");
-                        // }
+                            c == 0 ? img->Y_block (i * vmax * 8 + x * 8, j * hmax * 8 + y * 8, hmax / fv[c], vmax / fh[c]) : 
+                            c == 1 ? img->Cb_block(i * vmax * 8 + x * 8, j * hmax * 8 + y * 8, hmax / fv[c], vmax / fh[c]) :
+                                     img->Cr_block(i * vmax * 8 + x * 8, j * hmax * 8 + y * 8, hmax / fv[c], vmax / fh[c]);
+
+                        FDCT(block);
+                        qtz[qtid[c]].quantize(block);
+                        // blk[i][j][p] = qtz[qtid[c]].quantize(FDCT(block));
+                        blk[i][j][p] = block;
+                        debug(blk[i][j][p]);
                         std::vector<std::pair<uint8_t, int16_t>> RLP = RLC::encode_block(blk[i][j][p]);
                         for (int k = 0; k < (int)RLP.size(); ++k) {
                             uint8_t r = RLP[k].first;
@@ -188,9 +204,10 @@ int main(int argc, const char **argv) {
                             uint8_t s = (v == 0 ? 0 : (uint8_t)(32 - __builtin_clz(abs(v))));
                             huff[acid[c]].add_freq((uint8_t)(r << 4 | s), 1);
                         }
-                        uint8_t s = (blk[i][j][p][0][0] - last[c] == 0 ? 0 : (uint8_t)(32 - __builtin_clz(abs(blk[i][j][p][0][0] - last[c]))));
+                        int16_t dc = blk[i][j][p][0][0];
+                        uint8_t s = (dc - last[c] == 0 ? 0 : (uint8_t)(32 - __builtin_clz(abs(dc - last[c]))));
                         huff[dcid[c]].add_freq(s, 1);
-                        last[c] = blk[i][j][p][0][0];
+                        last[c] = dc;
                         p++;
                     }
                 }
@@ -217,9 +234,8 @@ int main(int argc, const char **argv) {
         write_jpeg(buf, DHT, &huff[i]);
 
     write_jpeg(buf, SOS);
-    memset(last, 0, sizeof(last));
-    
     buf->start_processing_mcu();
+    memset(last, 0, sizeof(last));
 
     for (int i = 0; i < (int)hf; ++i) {
         for (int j = 0; j < (int)wf; ++j) {

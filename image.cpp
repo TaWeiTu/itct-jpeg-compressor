@@ -41,11 +41,11 @@ void image::add_block(size_t topmost, size_t leftmost,
     }
 }
 
-std::array<std::array<int16_t, 8>, 8> image::Y_block(size_t topmost, size_t leftmost) const {
-    std::array<std::array<int16_t, 8>, 8> block;
+std::array<std::array<int16_t, 8>, 8> image::Y_block(size_t topmost, size_t leftmost, size_t di, size_t dj) const {
+    std::array<std::array<int16_t, 8>, 8> block{};
 
-    for (size_t i = topmost, ci = 0; ci < 8; ++i, ++ci) {
-        for (size_t j = leftmost, cj = 0; cj < 8; ++j, ++cj) {
+    for (size_t i = topmost, ci = 0; ci < 8; i += di, ++ci) {
+        for (size_t j = leftmost, cj = 0; cj < 8; j += dj, ++cj) {
             if (i < ht && j < wd)
                 block[ci][cj] = pix[i][j].y;
         }
@@ -53,11 +53,11 @@ std::array<std::array<int16_t, 8>, 8> image::Y_block(size_t topmost, size_t left
     return block;
 }
 
-std::array<std::array<int16_t, 8>, 8> image::Cb_block(size_t topmost, size_t leftmost) const {
-    std::array<std::array<int16_t, 8>, 8> block;
+std::array<std::array<int16_t, 8>, 8> image::Cb_block(size_t topmost, size_t leftmost, size_t di, size_t dj) const {
+    std::array<std::array<int16_t, 8>, 8> block{};
 
-    for (size_t i = topmost, ci = 0; ci < 8; ++i, ++ci) {
-        for (size_t j = leftmost, cj = 0; cj < 8; ++j, ++cj) {
+    for (size_t i = topmost, ci = 0; ci < 8; i += di, ++ci) {
+        for (size_t j = leftmost, cj = 0; cj < 8; j += dj, ++cj) {
             if (i < ht && j < wd)
                 block[ci][cj] = pix[i][j].cb;
         }
@@ -65,11 +65,11 @@ std::array<std::array<int16_t, 8>, 8> image::Cb_block(size_t topmost, size_t lef
     return block;
 }
 
-std::array<std::array<int16_t, 8>, 8> image::Cr_block(size_t topmost, size_t leftmost) const {
-    std::array<std::array<int16_t, 8>, 8> block;
+std::array<std::array<int16_t, 8>, 8> image::Cr_block(size_t topmost, size_t leftmost, size_t di, size_t dj) const {
+    std::array<std::array<int16_t, 8>, 8> block{};
 
-    for (size_t i = topmost, ci = 0; ci < 8; ++i, ++ci) {
-        for (size_t j = leftmost, cj = 0; cj < 8; ++j, ++cj) {
+    for (size_t i = topmost, ci = 0; ci < 8; i += di, ++ci) {
+        for (size_t j = leftmost, cj = 0; cj < 8; j += dj, ++cj) {
             if (i < ht && j < wd)
                 block[ci][cj] = pix[i][j].cr;
         }

@@ -84,14 +84,11 @@ quantizer::quantizer(std::array<std::array<int, 8>, 8> &&qtable): qtable(qtable)
 
 quantizer::quantizer(std::array<std::array<int, 8>, 8> &&qtable, uint8_t id): id(id), qtable(qtable){}
 
-std::array<std::array<int16_t, 8>, 8> quantizer::quantize(const std::array<std::array<float, 8>, 8> &tab) {
-    std::array<std::array<int16_t, 8>, 8> res;
-
+void quantizer::quantize(std::array<std::array<int16_t, 8>, 8> &tab) {
     for (int i = 0; i < 8; ++i) {
         for (int j = 0; j < 8; ++j) 
-            res[i][j] = (int16_t)(tab[i][j] / (float)qtable[i][j] + 0.5);
+            tab[i][j] = (int16_t)(tab[i][j] / qtable[i][j]);
     }
-    return res;
 }
 
 void quantizer::dequantize(std::array<std::array<int16_t, 8>, 8> &tab) {
@@ -112,10 +109,10 @@ static const float cosine[8][8] = {
     {1.00000f, -0.98079f, 0.92388f, -0.83147f, 0.70711f, -0.55557f, 0.38268f, -0.19509f}
 };
 
-std::array<std::array<float, 8>, 8> FDCT(std::array<std::array<int16_t, 8>, 8> &x) {
+void FDCT(std::array<std::array<int16_t, 8>, 8> &x) {
     static const float C0 = (float)(1. / sqrt(2));
     static const float Cu = 1.;
-    std::array<std::array<float, 8>, 8> y;
+    static float y[8][8];
 
     for (int i = 0; i < 8; ++i) {
         for (int j = 0; j < 8; ++j) {
@@ -136,7 +133,7 @@ std::array<std::array<float, 8>, 8> FDCT(std::array<std::array<int16_t, 8>, 8> &
             y[i][j] += x[1][4] * cosine[1][i] * cosine[4][j];
             y[i][j] += x[1][5] * cosine[1][i] * cosine[5][j];
             y[i][j] += x[1][6] * cosine[1][i] * cosine[6][j];
-            y[i][j] += x[1][7] * cosine[0][i] * cosine[7][j];
+            y[i][j] += x[1][7] * cosine[1][i] * cosine[7][j];
 
             y[i][j] += x[2][0] * cosine[2][i] * cosine[0][j];
             y[i][j] += x[2][1] * cosine[2][i] * cosine[1][j];
@@ -203,7 +200,11 @@ std::array<std::array<float, 8>, 8> FDCT(std::array<std::array<int16_t, 8>, 8> &
             y[i][j] = (float)(y[i][j] * 0.25 * (i == 0 ? C0 : Cu) * (j == 0 ? C0 : Cu));
         }
     }
-    return y;
+
+    for (int i = 0; i < 8; ++i) {
+        for (int j = 0; j < 8; ++j)
+            x[i][j] = (int16_t)(y[i][j] + 0.5);
+    }
 }
 
 void IDCT(std::array<std::array<int16_t, 8>, 8> &x) {
@@ -295,7 +296,7 @@ void IDCT(std::array<std::array<int16_t, 8>, 8> &x) {
 
     for (int i = 0; i < 8; ++i) {
         for (int j = 0; j < 8; ++j)
-            x[i][j] = (int16_t)(y[i][j] + 0.5);
+            x[i][j] = (int16_t)(y[i][j]);
     }
 }
 
@@ -326,5 +327,14 @@ quantizer chrominance(uint8_t id) {
 }
 
 quantizer dummy(uint8_t id) {
-    return quantizer(std::array<std::array<int, 8>, 8>(), id);
+    return quantizer(std::array<std::array<int, 8>, 8>{{
+        {8, 8, 8, 8, 8, 8, 8, 8},
+        {8, 8, 8, 8, 8, 8, 8, 8},
+        {8, 8, 8, 8, 8, 8, 8, 8},
+        {8, 8, 8, 8, 8, 8, 8, 8},
+        {8, 8, 8, 8, 8, 8, 8, 8},
+        {8, 8, 8, 8, 8, 8, 8, 8},
+        {8, 8, 8, 8, 8, 8, 8, 8},
+        {8, 8, 8, 8, 8, 8, 8, 8}
+    }}, id);
 }

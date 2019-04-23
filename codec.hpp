@@ -10,7 +10,6 @@
 #include "huffman.hpp"
 #include "zigzag.hpp"
 
-
 namespace RLC {
     std::pair<uint8_t, int16_t> decode_pixel(huffman::decoder*, buffer*);
     std::array<std::array<int16_t, 8>, 8> decode_block(huffman::decoder*, buffer*);
@@ -29,7 +28,7 @@ struct quantizer {
     quantizer();
     quantizer(std::array<std::array<int, 8>, 8> &&);
     quantizer(std::array<std::array<int, 8>, 8> &&, uint8_t);
-    std::array<std::array<int16_t, 8>, 8> quantize(const std::array<std::array<float, 8>, 8> &);
+    void quantize(std::array<std::array<int16_t, 8>, 8> &);
     void dequantize(std::array<std::array<int16_t, 8>, 8> &);
 };
 
@@ -37,7 +36,7 @@ quantizer luminance(uint8_t);
 quantizer chrominance(uint8_t);
 quantizer dummy(uint8_t);
 
-std::array<std::array<float, 8>, 8> FDCT(std::array<std::array<int16_t, 8>, 8> &);
+void FDCT(std::array<std::array<int16_t, 8>, 8> &);
 void IDCT(std::array<std::array<int16_t, 8>, 8> &);
 
 std::array<std::array<int, 8>, 8> construct_block(std::initializer_list<int>);

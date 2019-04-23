@@ -19,6 +19,21 @@
 
 // TODO: Deal with DRI
 
+#ifdef DEBUG
+FILE *dbg = fopen("decode.out", "w");
+
+void debug(std::array<std::array<int16_t, 8>, 8> block) {
+    for (int i = 0; i < 8; ++i) {
+        for (int j = 0; j < 8; ++j)
+            fprintf(dbg, "%d ", (int)block[i][j]);
+    }
+    fprintf(dbg, "\n");
+}
+#else
+void debug(...) {
+
+}
+#endif
 
 int main(int argc, const char **argv) {
     std::map<std::string, std::string> args = parse(argc, argv);
@@ -253,6 +268,7 @@ int main(int argc, const char **argv) {
 
                                     qtz[qt[c]].dequantize(block);
                                     IDCT(block);
+                                    debug(block);
 
                                     switch (c) {
                                         case 1:
