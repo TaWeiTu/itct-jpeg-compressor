@@ -148,7 +148,10 @@ void PPM::read(const char *filename) {
 
     char header[20];
     int maxval, ht_, wd_;
-    fscanf(fp, "%s\n%d %d\n%d\n", header, &wd_, &ht_, &maxval);
+    if (fscanf(fp, "%s\n%d %d\n%d\n", header, &wd_, &ht_, &maxval) == EOF) {
+        fprintf(stderr, "[Error] Wrong file format\n");
+        exit(1);
+    }
 
     ht = ht_, wd = wd_;
     pix.resize(ht, std::vector<pixel>(wd));
@@ -165,7 +168,80 @@ void PPM::read(const char *filename) {
 } 
 
 void BMP::read(const char *filename) {
+    fp = fopen(filename, "rb");
+    if (!fp) {
+        fprintf(stderr, "[Error] Unable to read file %s\n", filename);
+        exit(1);
+    }
 
+    // Bitmap file header 
+    size_t header = READ() | READ() << 8;
+    size_t bsize = READ() | READ() << 8 | READ() << 16 | READ() << 24;
+    READ(), READ(), READ(), READ();
+    size_t offset = READ() | READ() << 8 | READ() << 16 | READ() << 24;
+    size_t bytes = 14;
+
+    // DIB header
+    size_t dsize = READ() | READ() << 8 | READ() << 16 | READ() << 24;
+    bytes += 4;
+    switch (dsize) {
+        case 40: {
+            wd = READ() | READ() << 8 | READ() << 16 | READ() << 24;
+            ht = READ() | READ() << 8 | READ() << 16 | READ() << 24;
+            bytes += 8;
+            if ((READ() | READ() << 8) != 1) {
+                fprintf(stderr, "[Error] the number of color planes must be 1 in BITMAPINFOHEADER\n");
+                exit(1);
+            }
+            bytes += 2;
+            uint16_t bit_per_pixel = READ() | READ() << 8;
+            bytes += 2;
+            if (bit_per_pixel != 1  && bit_per_pixel != 4 && bit_per_pixel != 16 &&
+                bit_per_pixel != 24 && bit_per_pixel != 32) {
+                fprintf(stderr, "[Error] the number of bits per pixel is incorrect: expect 1, 4, 16, 24, 32, received: %d\n", (int)bit_per_pixel);
+                exit(1);
+            }
+
+            size_t compress = READ() | READ() << 8 | READ() << 16 | READ() << 24;
+            bytes += 4;
+            if (compress != 0) {
+                fprintf(stderr, "[Error] compression not yet supported\n");
+                exit(1);
+            }
+            // size_t isize = READ() | READ() << 8 | READ() << 16 | READ() << 24;
+            // size_t hores = READ() | READ() << 8 | READ() << 16 | READ() << 24;
+            // size_t veres = READ() | READ() << 8 | READ() << 16 | READ() << 24;
+            // size_t color = READ() | READ() << 8 | READ() << 16 | READ() << 24;
+            // size_t impor = READ() | READ() << 8 | READ() << 16 | READ() << 24;
+            for (int i = 0; i < 20; ++i) READ();
+            bytes += 20;
+
+            break;
+        }
+
+        default:
+            fprintf(stderr, "[Error] Unsupported DIB header\n");
+            exit(1);
+    }
+
+    assert(bytes == offset);
+    pix.resize(ht, std::vector<pixel>(wd));
+
+    for (int i = (int)ht - 1; i >= 0; --i) {
+        size_t seen = 0;
+        for (int j = 0; j < (int)wd; ++j) {
+            uint8_t b = READ();
+            uint8_t g = READ();
+            uint8_t r = READ();
+            seen += 3;
+            pix[i][j] = pixel(r, g, b);
+        }
+
+        while (seen % 4 != 0) {
+            READ();
+            ++seen;
+        }
+    }
 }
 
 void image::WRITE(uint8_t byte) {
