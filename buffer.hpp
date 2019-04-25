@@ -18,10 +18,10 @@ struct buffer {
     inline buffer(FILE *);
     inline uint8_t read_byte();
 
-    template <typename dtype = uint8_t>
+    template <typename dtype>
     inline dtype read_bits(uint8_t);
 
-    template <typename dtype = uint8_t>
+    template <typename dtype>
     inline dtype read_bytes(uint8_t);
 
     inline void skip_byte();
@@ -35,10 +35,10 @@ struct buffer {
 
     inline void write_byte(uint8_t);
 
-    template <typename dtype = uint8_t>
+    template <typename dtype>
     inline void write_bits(dtype, uint8_t);
 
-    template <typename dtype = uint8_t>
+    template <typename dtype>
     inline void write_bytes(dtype, uint8_t);
 
     inline void finish();
@@ -54,7 +54,7 @@ inline buffer::buffer(FILE *fp): fp(fp), bpos(7), fpos(0) {
     start_mcu = false;
 }
 
-template <typename dtype = uint8_t>
+template <typename dtype>
 inline dtype buffer::read_bits(uint8_t s) {
     dtype res = 0;
     for (int i = 0; i < (int)s; ++i) {
@@ -82,7 +82,7 @@ inline uint8_t buffer::read_byte() {
     return read_bits<uint8_t>(8);
 }
 
-template <typename dtype = uint8_t>
+template <typename dtype>
 inline dtype buffer::read_bytes(uint8_t s) {
     return read_bits<dtype>((uint8_t)(s * 8));
 }
@@ -112,14 +112,14 @@ inline bool buffer::read_mcu() const {
 }
 
 inline void buffer::flush() {
-    while (bpos != 7) read_bits(1);
+    while (bpos != 7) read_bits<uint8_t>(1);
 }
 
 inline void buffer::finish() {
     while (bpos != 7) write_bits(0, 1);
 }
 
-template <typename dtype = uint8_t>
+template <typename dtype>
 inline void buffer::write_bits(dtype data, uint8_t s) {
     for (int i = (int)s - 1; i >= 0; --i) {
         cbyte = (uint8_t)(cbyte << 1 | (data >> i & 1));
@@ -135,7 +135,7 @@ inline void buffer::write_bits(dtype data, uint8_t s) {
     }
 }
 
-template <typename dtype = uint8_t>
+template <typename dtype>
 inline void buffer::write_bytes(dtype data, uint8_t s) {
     write_bits(data, (uint8_t)(s * 8));
 }

@@ -117,6 +117,7 @@ int main(int argc, const char **argv) {
                     qt[cid] = nqt;
                     fh[cid] = hor;
                     fv[cid] = ver;
+                    fprintf(stderr, "qt[%d] = %d fh[%d] = %d fv[%d] = %d\n", cid, (int)qt[cid], cid, (int)fh[cid], cid, (int)fv[cid]);
                 }
                 break;
             }
@@ -264,14 +265,21 @@ int main(int argc, const char **argv) {
                             for (int i = 0; i < (int)fv[c]; ++i) {
                                 for (int j = 0; j < (int)fh[c]; ++j) {
                                     int16_t diff = DPCM::decode(&dc[dcid[c]], buf);
-                                    std::array<std::array<int16_t, 8>, 8> block = RLC::decode_block(&ac[acid[c]], buf);
-
                                     int16_t dc = (int16_t)(last[c] + diff);
+                                    printf("%d\n", (int)last[c]);
+                                    printf("%d\n", (int)diff);
+                                    printf("%d\n", (int)dc);
+                                    std::array<std::array<int16_t, 8>, 8> block = RLC::decode_block(&ac[acid[c]], buf);
                                     block[0][0] = last[c] = dc;
 
                                     qtz[qt[c]].dequantize(block);
                                     IDCT(block);
-                                    debug(block);
+                                    /* for (int y = 0; y < 8; ++y) {
+                                        for (int x = 0; x < 8; ++x)
+                                            printf("%d ", (int)block[y][x]);
+                                        puts("");
+                                    } */
+                                    // debug(block);
 
                                     std::vector<std::vector<int16_t>> *dest = c == 1 ? &Y : c == 2 ? &Cb : &Cr;
                                     for (int y = 0; y < 8; ++y) {
@@ -345,10 +353,11 @@ int main(int argc, const char **argv) {
                     fprintf(stderr, "[Error] SOI not found\n");
                     exit(1);
                 }
+                fprintf(stderr, "[Debug] COM\n");
                 // comment
                 size_t leng = buf->read_bytes<size_t>(2);
                 for (int i = 0; i < (int)leng - 2; ++i) 
-                    buf->read_byte();
+                    buf->skip_byte();
 
                 break;
             }

@@ -19,7 +19,7 @@ uint8_t huffman::decoder::next(buffer *buf) {
     int mask = 0;
     uint8_t len = 0;
     while (true) {
-        mask = (mask << 1 | buf->read_bits(1));
+        mask = (mask << 1 | buf->read_bits<int>(1));
         ++len;
 
         if (len == leng[mask])

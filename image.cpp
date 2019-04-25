@@ -8,12 +8,14 @@ pixel::pixel() {} pixel::pixel(uint8_t r, uint8_t g, uint8_t b): r(r), g(g), b(b
 }
 
 pixel::pixel(int16_t y, int16_t cb, int16_t cr): y(y), cb(cb), cr(cr) {
+    // fprintf(stderr, "y = %d cb = %d cr = %d\n", (int)y, (int)cb, (int)cr);
     int16_t r_ = (int16_t)(y + 1.402 * cr + 128 + 0.5);
     int16_t g_ = (int16_t)(y - 0.344136 * cb - 0.714136 * cr + 128 + 0.5);
     int16_t b_ = (int16_t)(y + 1.772 * cb + 128 + 0.5);
     r_ = std::clamp(r_, (int16_t)0, (int16_t)255);
     g_ = std::clamp(g_, (int16_t)0, (int16_t)255);
     b_ = std::clamp(b_, (int16_t)0, (int16_t)255);
+    // fprintf(stderr, "r_ = %d g_ = %d b_ = %d\n", r_, g_, b_);
     r = (uint8_t)r_;
     g = (uint8_t)g_;
     b = (uint8_t)b_;
@@ -90,12 +92,12 @@ void PPM::write(const char *filename) {
 
     for (int i = 0; i < (int)ht; ++i) {
         for (int j = 0; j < (int)wd; ++j) {
+            // fprintf(stderr, "r = %d g = %d b = %d\n", (int)pix[i][j].r, (int)pix[i][j].g, (int)pix[i][j].b);
             WRITE(pix[i][j].r);
             WRITE(pix[i][j].g);
             WRITE(pix[i][j].b);
         }
     }
-    fclose(fp);
 }
 
 void BMP::write(const char *filename) {
