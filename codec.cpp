@@ -188,14 +188,6 @@ void FDCT(std::array<std::array<int16_t, 8>, 8> &x) {
             y[i][j] += x[7][5] * cosine[7][i] * cosine[5][j];
             y[i][j] += x[7][6] * cosine[7][i] * cosine[6][j];
             y[i][j] += x[7][7] * cosine[7][i] * cosine[7][j];
-
-            // for (int a = 0; a < 8; ++a) {
-                // for (int b = 0; b < 8; ++b) {
-                    // double p = cos((2 * a + 1) * i * pi / (2 * n));
-                    // double q = cos((2 * b + 1) * j * pi / (2 * n));
-                    // y[i][j] += x[a][b] * p * q;
-                // }
-            // }
             
             y[i][j] = (float)(y[i][j] * 0.25 * (i == 0 ? C0 : Cu) * (j == 0 ? C0 : Cu));
         }

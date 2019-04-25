@@ -2,6 +2,7 @@
 #include <cassert>
 #include <cstdint>
 #include <cstdio>
+#include <chrono>
 #include <ctime>
 #include <cstdlib>
 #include <cstring>
@@ -62,6 +63,8 @@ int main(int argc, const char **argv) {
 
     buffer *buf = new buffer(fp);
     image *img = nullptr;
+
+    std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
 
     while (!eoi) {
         // reading marker
@@ -319,13 +322,14 @@ int main(int argc, const char **argv) {
                 uint8_t unit = buf->read_byte();
                 uint16_t x_density = buf->read_bytes<uint16_t>(2);
                 uint16_t y_density = buf->read_bytes<uint16_t>(2);
-                fprintf(stderr, "version = %d unit = %d x_density = %d y_density = %d\n", (int)version, (int)unit, 
-                                                                                          (int)x_density, (int)y_density);
+                fprintf(stderr, "version = %d unit = %d x_density = %d y_density = %d\n", 
+                        (int)version, (int)unit, (int)x_density, (int)y_density);
 #else
                 buf->skip_bytes(7);
 #endif
                 uint8_t width_t  = buf->read_byte();
                 uint8_t height_t = buf->read_byte();
+                fprintf(stderr, "width = %d height = %d\n", (int)width_t, (int)height_t);
 
                 for (int i = 0; i < (int)width_t; ++i) {
                     for (int j = 0; j < (int)height_t; ++j) {
@@ -343,7 +347,6 @@ int main(int argc, const char **argv) {
                 }
                 // comment
                 size_t leng = buf->read_bytes<size_t>(2);
-
                 for (int i = 0; i < (int)leng - 2; ++i) 
                     buf->read_byte();
 
@@ -360,12 +363,21 @@ int main(int argc, const char **argv) {
                 break;
             }
 
-            default:
+            case 0xE1 ... 0xEF: {
+                fprintf(stderr, "[Warning] Unsupported marker (ignored): APPn\n");
+                size_t leng = buf->read_bytes<size_t>(2);
+                for (int i = 0; i < (int)leng - 2; ++i)
+                    buf->skip_byte();
+                break;
+            }
+
+            default: 
                 fprintf(stderr, "[Error] Wrong format, unexpected byte 0x%hhx\n", byte2);
                 exit(1);
-
         }
     }
+    std::chrono::high_resolution_clock::time_point stop = std::chrono::high_resolution_clock::now();
+    fprintf(stderr, "[Info] Time elapsed: %d (ms)\n", (int)std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count());
 
     fclose(fp);
     img->write(dest);

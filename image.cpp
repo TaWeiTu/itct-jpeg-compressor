@@ -194,13 +194,14 @@ void BMP::read(const char *filename) {
                 exit(1);
             }
             bytes += 2;
-            uint16_t bit_per_pixel = READ() | READ() << 8;
+            size_t bit_per_pixel = READ() | READ() << 8;
             bytes += 2;
             if (bit_per_pixel != 1  && bit_per_pixel != 4 && bit_per_pixel != 16 &&
                 bit_per_pixel != 24 && bit_per_pixel != 32) {
                 fprintf(stderr, "[Error] the number of bits per pixel is incorrect: expect 1, 4, 16, 24, 32, received: %d\n", (int)bit_per_pixel);
                 exit(1);
             }
+            assert(bit_per_pixel == 24);
 
             size_t compress = READ() | READ() << 8 | READ() << 16 | READ() << 24;
             bytes += 4;
@@ -234,14 +235,17 @@ void BMP::read(const char *filename) {
             uint8_t g = READ();
             uint8_t r = READ();
             seen += 3;
+            bytes += 3;
             pix[i][j] = pixel(r, g, b);
         }
 
         while (seen % 4 != 0) {
             READ();
             ++seen;
+            ++bytes;
         }
     }
+    assert(bytes == bsize);
 }
 
 void image::WRITE(uint8_t byte) {

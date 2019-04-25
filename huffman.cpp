@@ -2,14 +2,13 @@
 
 
 huffman::decoder::decoder(const std::array<std::vector<uint8_t>, 16> &symbol) {
-    maps.clear();
-    // memset(has_val, false, sizeof(has_val));
+    // leng = std::array<uint8_t, 1 << 16>{};
+    // code = std::array<uint8_t, 1 << 16>{};
     int mask = 0;
     for (int i = 0; i < 16; ++i) {
         for (int j = 0; j < (int)symbol[i].size(); ++j) {
-            maps[std::make_pair(mask, i + 1)] = symbol[i][j];
-            // table[mask][i + 1] = symbol[i][j];
-            // has_val[mask][i + 1] = true;
+            leng[mask] = (uint8_t)(i + 1);
+            code[mask] = symbol[i][j];
             mask++;
         }
         mask <<= 1;
@@ -18,16 +17,15 @@ huffman::decoder::decoder(const std::array<std::vector<uint8_t>, 16> &symbol) {
 
 uint8_t huffman::decoder::next(buffer *buf) {
     int mask = 0;
-    uint8_t leng = 0;
+    uint8_t len = 0;
     while (true) {
         mask = (mask << 1 | buf->read_bits(1));
-        ++leng;
-        auto it = maps.find(std::make_pair(mask, leng));
+        ++len;
 
-        if (it != maps.end()) 
-            return it->second;
+        if (len == leng[mask])
+            return code[mask];
 
-        if (leng > 16) {
+        if (len > 16) {
             fprintf(stderr, "Codelength too long\n");
             exit(1);
         }
@@ -36,17 +34,8 @@ uint8_t huffman::decoder::next(buffer *buf) {
     exit(1);
 }
 
-huffman::encoder::encoder() {
-    memset(code, 0, sizeof(code));
-    memset(freq, 0, sizeof(freq));
-    memset(leng, 0, sizeof(leng));
-}
 
-huffman::encoder::encoder(uint8_t id): id(id) {
-    memset(code, 0, sizeof(code));
-    memset(freq, 0, sizeof(freq));
-    memset(leng, 0, sizeof(leng));
-}
+huffman::encoder::encoder(uint8_t id): id(id) {}
 
 void huffman::encoder::add_freq(uint8_t sym, size_t f = 1) {
     freq[sym] += f;

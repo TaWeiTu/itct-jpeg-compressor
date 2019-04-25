@@ -18,7 +18,8 @@
 namespace huffman {
 
     struct decoder {
-        std::map<std::pair<int, uint8_t>, uint8_t> maps;
+        std::array<uint8_t, 1 << 16> leng{};
+        std::array<uint8_t, 1 << 16> code{};
 
         decoder() = default;
         decoder(const std::array<std::vector<uint8_t>, 16> &);
@@ -28,12 +29,12 @@ namespace huffman {
 
     struct encoder {
         uint8_t id;
-        int code[256];
-        size_t freq[256];
-        uint8_t leng[256];
+        std::array<int, 256> code{};
+        std::array<size_t, 256> freq{};
+        std::array<uint8_t, 256> leng{};
         std::vector<uint8_t> tab[16];
 
-        encoder();
+        encoder() = default;
         encoder(uint8_t);
 
         void add_freq(uint8_t, size_t);
