@@ -117,7 +117,6 @@ int main(int argc, const char **argv) {
                     qt[cid] = nqt;
                     fh[cid] = hor;
                     fv[cid] = ver;
-                    fprintf(stderr, "qt[%d] = %d fh[%d] = %d fv[%d] = %d\n", cid, (int)qt[cid], cid, (int)fh[cid], cid, (int)fv[cid]);
                 }
                 break;
             }
@@ -268,19 +267,10 @@ int main(int argc, const char **argv) {
                                 for (int j = 0; j < (int)fh[c]; ++j) {
                                     int16_t diff = DPCM::decode(&dc[dcid[c]], buf);
                                     int16_t dc = (int16_t)(last[c] + diff);
-                                    // printf("%d\n", (int)last[c]);
-                                    // printf("%d\n", (int)diff);
-                                    // printf("%d\n", (int)dc);
                                     std::array<std::array<int16_t, 8>, 8> block = RLC::decode_block(&ac[acid[c]], buf);
                                     block[0][0] = last[c] = dc;
-                                    /* for (int y = 0; y < 8; ++y) {
-                                        for (int x = 0; x < 8; ++x)
-                                            printf("%d ", (int)block[y][x]);
-                                        puts("");
-                                    } */
                                     qtz[qt[c]].dequantize(block);
                                     IDCT(block);
-                                    // debug(block);
 
                                     std::vector<std::vector<int16_t>> *dest = c == 1 ? &Y : c == 2 ? &Cb : &Cr;
                                     for (int y = 0; y < 8; ++y) {
@@ -338,7 +328,6 @@ int main(int argc, const char **argv) {
 #endif
                 uint8_t width_t  = buf->read_byte();
                 uint8_t height_t = buf->read_byte();
-                fprintf(stderr, "width = %d height = %d\n", (int)width_t, (int)height_t);
 
                 for (int i = 0; i < (int)width_t; ++i) {
                     for (int j = 0; j < (int)height_t; ++j) {

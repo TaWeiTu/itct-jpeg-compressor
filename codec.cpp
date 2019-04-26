@@ -89,27 +89,9 @@ int16_t DPCM::decode(huffman::decoder *huf, buffer *buf) {
 
 quantizer::quantizer() {}
 
-quantizer::quantizer(std::array<std::array<int, 8>, 8> &&qtable): qtable(qtable) {
-    for (int i = 0; i < 8; ++i) {
-        fprintf(stderr, "{");
-        for (int j = 0; j < 8; ++j) {
-            fprintf(stderr, "%d" , (int)qtable[i][j]);
-            if (j == 7)
-                fprintf(stderr, "}");
-            else
-                fprintf(stderr, ",");
-        }
-        fprintf(stderr, "\n");
-    }
-}
+quantizer::quantizer(std::array<std::array<int, 8>, 8> &&qtable): qtable(qtable) {}
 
-quantizer::quantizer(std::array<std::array<int, 8>, 8> &&qtable, uint8_t id): id(id), qtable(qtable) {
-    for (int i = 0; i < 8; ++i) {
-        for (int j = 0; j < 8; ++j)
-            fprintf(stderr, "%d ", (int)qtable[i][j]);
-        fprintf(stderr, "\n");
-    }
-}
+quantizer::quantizer(std::array<std::array<int, 8>, 8> &&qtable, uint8_t id): id(id), qtable(qtable) {}
 
 void quantizer::quantize(std::array<std::array<int16_t, 8>, 8> &tab) {
     for (int i = 0; i < 8; ++i) {

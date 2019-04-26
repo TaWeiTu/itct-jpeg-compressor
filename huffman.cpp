@@ -2,14 +2,13 @@
 
 
 huffman::decoder::decoder(const std::array<std::vector<uint8_t>, 16> &symbol) {
-    // leng = std::array<uint8_t, 1 << 16>{};
-    // code = std::array<uint8_t, 1 << 16>{};
+    leng = std::array<uint8_t, 1 << 16>{};
+    code = std::array<uint8_t, 1 << 16>{};
     int mask = 0;
     for (int i = 0; i < 16; ++i) {
         for (int j = 0; j < (int)symbol[i].size(); ++j) {
-            // leng[mask] = (uint8_t)(i + 1);
-            // code[mask] = symbol[i][j];
-            maps[std::make_pair(mask, i + 1)] = symbol[i][j];
+            leng[mask] = (uint8_t)(i + 1);
+            code[mask] = symbol[i][j];
             mask++;
         }
         mask <<= 1;
@@ -23,14 +22,9 @@ uint8_t huffman::decoder::next(buffer *buf) {
         mask = (mask << 1 | buf->read_bits<int>(1));
         ++len;
 
-        /* if (len == leng[mask]) {
+        if (len == leng[mask]) {
             // printf("huffman %d %d\n", mask, (int)len);
             return code[mask];
-        } */
-
-        auto it = maps.find(std::make_pair(mask, len));
-        if (it != maps.end()) {
-            return it->second;
         }
 
         if (len > 16) {

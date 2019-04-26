@@ -18,9 +18,8 @@
 namespace huffman {
 
     struct decoder {
-        // std::array<uint8_t, 1 << 16> leng{};
-        // std::array<uint8_t, 1 << 16> code{};
-        std::map<std::pair<int, uint8_t>, uint8_t> maps;
+        std::array<uint8_t, 1 << 16> leng{};
+        std::array<uint8_t, 1 << 16> code{};
 
         decoder() = default;
         decoder(const std::array<std::vector<uint8_t>, 16> &);
