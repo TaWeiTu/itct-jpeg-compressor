@@ -5,9 +5,7 @@ pixel::pixel() {} pixel::pixel(uint8_t r, uint8_t g, uint8_t b): r(r), g(g), b(b
     y  = (int16_t)( 0.299    * r + 0.587    * g + 0.114    * b - 128 + 0.5);
     cb = (int16_t)(-0.168736 * r - 0.331264 * g + 0.5      * b + 0.5);
     cr = (int16_t)( 0.5      * r - 0.418688 * g - 0.081312 * b + 0.5);
-}
-
-pixel::pixel(int16_t y, int16_t cb, int16_t cr): y(y), cb(cb), cr(cr) {
+} pixel::pixel(int16_t y, int16_t cb, int16_t cr): y(y), cb(cb), cr(cr) {
     // fprintf(stderr, "y = %d cb = %d cr = %d\n", (int)y, (int)cb, (int)cr);
     int16_t r_ = (int16_t)(y + 1.402 * cr + 128 + 0.5);
     int16_t g_ = (int16_t)(y - 0.344136 * cb - 0.714136 * cr + 128 + 0.5);
@@ -178,6 +176,10 @@ void BMP::read(const char *filename) {
 
     // Bitmap file header 
     size_t header = READ() | READ() << 8;
+    if (header != 0x4D42) {
+        fprintf(stderr, "[Error] Unknown Bitmap file header\n");
+        exit(1);
+    }
     size_t bsize = READ() | READ() << 8 | READ() << 16 | READ() << 24;
     READ(), READ(), READ(), READ();
     size_t offset = READ() | READ() << 8 | READ() << 16 | READ() << 24;
@@ -211,14 +213,22 @@ void BMP::read(const char *filename) {
                 fprintf(stderr, "[Error] compression not yet supported\n");
                 exit(1);
             }
-            // size_t isize = READ() | READ() << 8 | READ() << 16 | READ() << 24;
-            // size_t hores = READ() | READ() << 8 | READ() << 16 | READ() << 24;
-            // size_t veres = READ() | READ() << 8 | READ() << 16 | READ() << 24;
-            // size_t color = READ() | READ() << 8 | READ() << 16 | READ() << 24;
-            // size_t impor = READ() | READ() << 8 | READ() << 16 | READ() << 24;
             for (int i = 0; i < 20; ++i) READ();
             bytes += 20;
 
+            break;
+        }
+
+        case 12: {
+            wd = READ() | READ() << 8;
+            ht = READ() | READ() << 8;
+            bytes += 4;
+            if ((READ() | READ() << 8) != 1) {
+                fprintf(stderr, "[Error] the number of color planes must be 1 in BITMAPCOREHEADER\n");
+                exit(1);
+            }
+            READ(), READ();
+            bytes += 4;
             break;
         }
 
