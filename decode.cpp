@@ -229,6 +229,12 @@ int main(int argc, const char **argv) {
 #endif
                 // start of scan
                 // size_t leng = buf->read_bytes<size_t>(2);
+
+                size_t hf = (ht + (vmax * 8) - 1) / (vmax * 8);
+                size_t wf = (wd + (hmax * 8) - 1) / (hmax * 8);
+
+                // printf("hf = %d wf = %d\n", (int)hf, (int)wf);
+                buf->start_processing_mcu();
                 buf->skip_bytes(2);
                 uint8_t cnt = buf->read_byte();
 
@@ -243,12 +249,8 @@ int main(int argc, const char **argv) {
 
                 buf->skip_bytes(3);
 
-                size_t hf = (ht + (vmax * 8) - 1) / (vmax * 8);
-                size_t wf = (wd + (hmax * 8) - 1) / (hmax * 8);
-
                 int16_t last[6];
                 memset(last, 0, sizeof(last));
-                buf->start_processing_mcu();
 
                 size_t RSTn = 0;
                 const int16_t EMPTY = 32767;
@@ -266,19 +268,18 @@ int main(int argc, const char **argv) {
                                 for (int j = 0; j < (int)fh[c]; ++j) {
                                     int16_t diff = DPCM::decode(&dc[dcid[c]], buf);
                                     int16_t dc = (int16_t)(last[c] + diff);
-                                    printf("%d\n", (int)last[c]);
-                                    printf("%d\n", (int)diff);
-                                    printf("%d\n", (int)dc);
+                                    // printf("%d\n", (int)last[c]);
+                                    // printf("%d\n", (int)diff);
+                                    // printf("%d\n", (int)dc);
                                     std::array<std::array<int16_t, 8>, 8> block = RLC::decode_block(&ac[acid[c]], buf);
                                     block[0][0] = last[c] = dc;
-
-                                    qtz[qt[c]].dequantize(block);
-                                    IDCT(block);
                                     /* for (int y = 0; y < 8; ++y) {
                                         for (int x = 0; x < 8; ++x)
                                             printf("%d ", (int)block[y][x]);
                                         puts("");
                                     } */
+                                    qtz[qt[c]].dequantize(block);
+                                    IDCT(block);
                                     // debug(block);
 
                                     std::vector<std::vector<int16_t>> *dest = c == 1 ? &Y : c == 2 ? &Cb : &Cr;

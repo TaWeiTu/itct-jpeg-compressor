@@ -47,9 +47,9 @@ struct buffer {
 inline buffer::buffer(): fp(nullptr), start_mcu(false) {}
 
 inline buffer::buffer(FILE *fp): fp(fp), bpos(7), fpos(0) {
-    fseek(fp, 0, SEEK_END);
-    flen = ftell(fp);
-    rewind(fp);
+    // fseek(fp, 0, SEEK_END);
+    // flen = ftell(fp);
+    // rewind(fp);
     cbyte = (uint8_t)fgetc(fp);
     start_mcu = false;
 }
@@ -63,10 +63,16 @@ inline dtype buffer::read_bits(uint8_t s) {
         if (--bpos < 0) {
             bpos = 7;
             cbyte = (uint8_t)fgetc(fp);
+            // fprintf(stderr, "0x%02hx\n", cbyte);
             if (start_mcu && cbyte == 0xFF) {
                 uint8_t nxt = (uint8_t)fgetc(fp);
+                // printf("good\n");
                 if (nxt != 0x00) {
                     ungetc(nxt, fp);
+                    if (i + 1 == s)
+                        return res;
+                    // fprintf(stderr, "bad byte = 0x%02hx\n", nxt);
+                    // exit(0);
                     start_mcu = false;
                 } else {
                     fpos++;
@@ -122,10 +128,11 @@ inline void buffer::finish() {
 template <typename dtype>
 inline void buffer::write_bits(dtype data, uint8_t s) {
     for (int i = (int)s - 1; i >= 0; --i) {
-        cbyte = (uint8_t)(cbyte << 1 | (data >> i & 1));
+        cbyte = (uint8_t)(cbyte << 1 | (uint8_t)(data >> i & 1ll));
         if (--bpos < 0) {
             fwrite(&cbyte, 1, 1, fp);
             if (start_mcu && cbyte == 0xFF) {
+                // printf("good\n");
                 cbyte = 0x00;
                 fwrite(&cbyte, 1, 1, fp);
             }

@@ -11,12 +11,14 @@ std::pair<uint8_t, int16_t> RLC::decode_pixel(huffman::decoder *huf, buffer *buf
     uint8_t r = res >> 4 & 15;
     uint8_t s = res & 15;
 
-    if (s == 0)
-        return std::make_pair(15, 0);
+    if (s == 0) {
+        return std::make_pair(r, 0);
+    }
 
     uint16_t offset = buf->read_bits<uint16_t>(s);
     int16_t var = (int16_t)(offset >= (1 << (int)(s - 1)) ? offset : -((int)(1 << s) - (int)offset - 1));
 
+    // printf("%d\n", (int)var);
     return std::make_pair(r, var);
 }
 
@@ -24,9 +26,10 @@ std::array<std::array<int16_t, 8>, 8> RLC::decode_block(huffman::decoder *huf, b
     std::array<std::array<int16_t, 8>, 8> res{};
 
     size_t ptr = 1;
+    // fprintf(stderr, "enter\n");
     while (ptr < 64) {
         std::pair<uint8_t, int16_t> RLP = decode_pixel(huf, buf);
-        printf("%d %d\n", (int)RLP.first, (int)RLP.second);
+        // fprintf(stderr, "%d %d\n", (int)RLP.first, (int)RLP.second);
         if (RLP == std::make_pair((uint8_t)0, (int16_t)0))
             break;
 
@@ -70,35 +73,42 @@ std::vector<std::pair<uint8_t, int16_t>> RLC::encode_block(const std::array<std:
 
 int16_t DPCM::decode(huffman::decoder *huf, buffer *buf) {
     uint8_t res = huf->next(buf); 
-    printf("%d\n", (int)res);
+    // printf("%d\n", (int)res);
 
     if (!res) {
-        printf("0\n");
+        // printf("0\n");
         return 0;
     }
-    uint16_t offset = buf->read_bits<uint16_t>(res);
-    int16_t diff = (int16_t)(offset >= (1 << (int)(res - 1)) ? offset : -((int)(1 << res) - (int)offset - 1));
-    printf("%d\n", (int)offset);
 
+    int16_t offset = buf->read_bits<int16_t>(res);
+    int16_t diff = (int16_t)(offset >= (1 << (int)(res - 1)) ? offset : -((int)(1 << res) - (int)offset - 1));
+
+    // printf("%d\n", (int)offset);
     return diff;
 }
 
 quantizer::quantizer() {}
 
 quantizer::quantizer(std::array<std::array<int, 8>, 8> &&qtable): qtable(qtable) {
-    // for (int i = 0; i < 8; ++i) {
-        // for (int j = 0; j < 8; ++j)
-            // fprintf(stderr, "%d ", (int)qtable[i][j]);
-        // fprintf(stderr, "\n");
-    // }
+    for (int i = 0; i < 8; ++i) {
+        fprintf(stderr, "{");
+        for (int j = 0; j < 8; ++j) {
+            fprintf(stderr, "%d" , (int)qtable[i][j]);
+            if (j == 7)
+                fprintf(stderr, "}");
+            else
+                fprintf(stderr, ",");
+        }
+        fprintf(stderr, "\n");
+    }
 }
 
 quantizer::quantizer(std::array<std::array<int, 8>, 8> &&qtable, uint8_t id): id(id), qtable(qtable) {
-    // for (int i = 0; i < 8; ++i) {
-        // for (int j = 0; j < 8; ++j)
-            // fprintf(stderr, "%d ", (int)qtable[i][j]);
-        // fprintf(stderr, "\n");
-    // }
+    for (int i = 0; i < 8; ++i) {
+        for (int j = 0; j < 8; ++j)
+            fprintf(stderr, "%d ", (int)qtable[i][j]);
+        fprintf(stderr, "\n");
+    }
 }
 
 void quantizer::quantize(std::array<std::array<int16_t, 8>, 8> &tab) {
@@ -462,5 +472,30 @@ quantizer dummy(uint8_t id) {
         {1, 1, 1, 1, 1, 1, 1, 1},
         {1, 1, 1, 1, 1, 1, 1, 1},
         {1, 1, 1, 1, 1, 1, 1, 1}
+    }}, id);
+}
+
+quantizer hey1(uint8_t id) {
+    return quantizer(std::array<std::array<int, 8>, 8>{{
+        {3,1,1,3,4,6,7,9},
+        {1,1,1,3,4,8,8,8},
+        {1,1,3,4,6,8,10,8},
+        {1,3,3,4,7,12,11,10},
+        {3,3,5,8,10,15,15,12},
+        {4,5,8,9,11,15,16,13},
+        {7,9,11,12,15,17,17,15},
+        {10,13,13,14,16,14,15,14}
+    }}, id);
+}
+quantizer hey2(uint8_t id) {
+    return quantizer(std::array<std::array<int, 8>, 8>{{
+        {1,1,3,5,11,11,11,11},
+        {1,3,3,7,11,11,11,11},
+        {3,3,6,11,11,11,11,11},
+        {5,7,11,11,11,11,11,11},
+        {11,11,11,11,11,11,11,11},
+        {11,11,11,11,11,11,11,11},
+        {11,11,11,11,11,11,11,11},
+        {11,11,11,11,11,11,11,11}
     }}, id);
 }

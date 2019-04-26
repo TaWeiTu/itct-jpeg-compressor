@@ -174,12 +174,15 @@ int main(int argc, const char **argv) {
         huff[i] = huffman::encoder((uint8_t)i);
 
     // quantizer qtz[2] = {luminance(0), chrominance(1)};
-    quantizer qtz[2] = {dummy(0), dummy(1)};
+    // quantizer qtz[2] = {dummy(0), dummy(1)};
+    quantizer qtz[2] = {hey1(0), hey2(1)};
+
 
     using block_type = std::vector<std::array<std::array<int16_t, 8>, 8>>;
     std::vector<std::vector<block_type>> blk(hf, std::vector<block_type>(wf));
 
     int16_t last[3] = {0, 0, 0};
+    printf("hf = %d wf = %d\n", (int)hf, (int)wf);
 
     for (int i = 0; i < (int)hf; ++i) {
         for (int j = 0; j < (int)wf; ++j) {
@@ -194,11 +197,6 @@ int main(int argc, const char **argv) {
 
                         FDCT(block);
                         qtz[qtid[c]].quantize(block);
-                        /* for (int y = 0; y < 8; ++y) {
-                            for (int x = 0; x < 8; ++x)
-                                printf("%d ", (int)block[y][x]);
-                            puts("");
-                        } */
                         blk[i][j][p] = block;
                         // debug(blk[i][j][p]);
                         int16_t dc = blk[i][j][p][0][0];
@@ -213,8 +211,7 @@ int main(int argc, const char **argv) {
                             huff[acid[c]].add_freq((uint8_t)(r << 4 | s), 1);
                         }
                         p++;
-                    }
-                }
+                    } }
             }
         }
     }
@@ -258,17 +255,24 @@ int main(int argc, const char **argv) {
                                 diff = (int16_t)(dc - last[c]);
                         }
                         buf->write_bits(diff, s);
-                        // printf("%d\n", (int)s);
-                        // printf("%d\n", (int)diff);
-                        // printf("%d\n", (int)last[c]);
+                        // printf("huffman %d %d\n", (int)huff[dcid[c]].code[s], (int)huff[dcid[c]].leng[s]);
+                        printf("%d\n", (int)s);
+                        printf("%d\n", (int)diff);
+                        printf("%d\n", (int)last[c]);
                         // printf("%d\n", (int)(dc - last[c]));
-                        // printf("%d\n", (int)dc);
+                        printf("%d\n", (int)dc);
+                        for (int y = 0; y < 8; ++y) {
+                            for (int x = 0; x < 8; ++x)
+                                printf("%d ", (int)blk[i][j][p][y][x]);
+                            puts("");
+                        }
                         last[c] = dc;
 
                         std::vector<std::pair<uint8_t, int16_t>> RLP = RLC::encode_block(blk[i][j][p]);
                         for (int k = 0; k < (int)RLP.size(); ++k) {
                             uint8_t r = RLP[k].first;
                             int16_t v = RLP[k].second;
+                            // printf("%d %d\n", (int)r, (int)v);
                             uint8_t s = (v == 0 ? 0 : (uint8_t)(32 - __builtin_clz((int)abs(v))));
                             int16_t diff = 0;
                             if (v != 0) {

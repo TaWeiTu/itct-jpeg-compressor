@@ -35,6 +35,8 @@ struct quantizer {
 quantizer luminance(uint8_t);
 quantizer chrominance(uint8_t);
 quantizer dummy(uint8_t);
+quantizer hey1(uint8_t);
+quantizer hey2(uint8_t);
 
 void FDCT(std::array<std::array<int16_t, 8>, 8> &);
 void FDCT2(std::array<std::array<int16_t, 8>, 8> &);
