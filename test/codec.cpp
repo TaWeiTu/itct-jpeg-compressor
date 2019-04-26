@@ -14,7 +14,7 @@ int main() {
     std::array<int16_t, 8> vv, ww;
     std::mt19937 rng(7122);
     std::uniform_int_distribution<int16_t> dis(-256, 256);
-    quantizer qtz = dummy(0);
+    // quantizer qtz = dummy(0);
     for (int i = 0; i < 8; ++i) {
         for (int j = 0; j < 8; ++j) 
             v[i][j] = dis(rng),
@@ -27,13 +27,13 @@ int main() {
     printf("input vector: \n");
     for (int i = 0; i < 8; ++i) printf("%d ", (int)vv[i]); puts("");
 
-    FDCT_1D(vv);
-    FDCT_1D_chen(ww);
+    IDCT_1D(vv);
+    IDCT_1D_chen(ww);
 
-    printf("FDCT1: \n");
+    printf("IDCT1: \n");
     for (int i = 0; i < 8; ++i) printf("%d ", (int)vv[i]); puts("");
 
-    printf("FDCT2: \n");
+    printf("IDCT2: \n");
     for (int i = 0; i < 8; ++i) printf("%d ", (int)ww[i]); puts("");
     /* printf("Input matrix: \n");
     for (int i = 0; i < 8; ++i) {

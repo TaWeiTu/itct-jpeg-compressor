@@ -1,3 +1,4 @@
+#include <chrono>
 #include <cstdio>
 #include <map>
 #include <string>
@@ -13,21 +14,6 @@ const uint8_t acid[3] = {0, 1, 1};
 const uint8_t dcid[3] = {2, 3, 3};
 const uint8_t qtid[3] = {0, 1, 1};
 
-#ifdef DEBUG
-FILE *dbg = fopen("encode.out", "w");
-
-void debug(std::array<std::array<int16_t, 8>, 8> block) {
-    for (int i = 0; i < 8; ++i) {
-        for (int j = 0; j < 8; ++j)
-            fprintf(dbg, "%d ", (int)block[i][j]);
-    }
-    fprintf(dbg, "\n");
-}
-#else
-void debug(...) {
-
-}
-#endif
 
 void write_jpeg(buffer *buf, uint8_t marker, void *ptr = nullptr) {
     // write jpeg marker
@@ -160,6 +146,7 @@ int main(int argc, const char **argv) {
 
     img->read(args["src"].c_str());
 
+    std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
     uint8_t vmax = *std::max_element(fv.begin(), fv.end());
     uint8_t hmax = *std::max_element(fh.begin(), fh.end());
     size_t block_per_mcu = 0;
@@ -198,7 +185,6 @@ int main(int argc, const char **argv) {
                         FDCT(block);
                         qtz[qtid[c]].quantize(block);
                         blk[i][j][p] = block;
-                        // debug(blk[i][j][p]);
                         int16_t dc = blk[i][j][p][0][0];
                         uint8_t s = (dc - last[c] == 0 ? 0 : (uint8_t)(32 - __builtin_clz((int)abs(dc - last[c]))));
                         huff[dcid[c]].add_freq(s, 1);
@@ -261,7 +247,6 @@ int main(int argc, const char **argv) {
                         for (int k = 0; k < (int)RLP.size(); ++k) {
                             uint8_t r = RLP[k].first;
                             int16_t v = RLP[k].second;
-                            // printf("%d %d\n", (int)r, (int)v);
                             uint8_t s = (v == 0 ? 0 : (uint8_t)(32 - __builtin_clz((int)abs(v))));
                             int16_t diff = 0;
                             if (v != 0) {
@@ -272,7 +257,6 @@ int main(int argc, const char **argv) {
                             }
                             buf->write_bits(huff[acid[c]].code[r << 4 | s], huff[acid[c]].leng[r << 4 | s]);
                             buf->write_bits(diff, s);
-                            // printf("%d %d\n", (int)r, (int)v);
                         }
                         p++;
                     }
@@ -281,6 +265,8 @@ int main(int argc, const char **argv) {
         }
     }
 
+    std::chrono::high_resolution_clock::time_point stop = std::chrono::high_resolution_clock::now();
+    fprintf(stderr, "[Info] Time elapsed: %d (ms)\n", (int)std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count());
     buf->end_processing_mcu();
     buf->finish();
     write_jpeg(buf, EOI);

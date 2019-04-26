@@ -20,22 +20,6 @@
 
 // TODO: Deal with DRI
 
-#ifdef DEBUG
-FILE *dbg = fopen("decode.out", "w");
-
-void debug(std::array<std::array<int16_t, 8>, 8> block) {
-    for (int i = 0; i < 8; ++i) {
-        for (int j = 0; j < 8; ++j)
-            fprintf(dbg, "%d ", (int)block[i][j]);
-    }
-    fprintf(dbg, "\n");
-}
-#else
-void debug(...) {
-
-}
-#endif
-
 int main(int argc, const char **argv) {
     std::map<std::string, std::string> args = parse(argc, argv);
 
@@ -227,10 +211,6 @@ int main(int argc, const char **argv) {
                 fprintf(stderr, "[Debug] SOS\n");
 #endif
                 // start of scan
-                // size_t leng = buf->read_bytes<size_t>(2);
-
-                size_t hf = (ht + (vmax * 8) - 1) / (vmax * 8);
-                size_t wf = (wd + (hmax * 8) - 1) / (hmax * 8);
 
                 // printf("hf = %d wf = %d\n", (int)hf, (int)wf);
                 buf->start_processing_mcu();
@@ -245,6 +225,8 @@ int main(int argc, const char **argv) {
                     dcid[cs] = td;
                     acid[cs] = ta;
                 }
+                size_t hf = (ht + (vmax * 8) - 1) / (vmax * 8);
+                size_t wf = (wd + (hmax * 8) - 1) / (hmax * 8);
 
                 buf->skip_bytes(3);
 
@@ -329,10 +311,13 @@ int main(int argc, const char **argv) {
                 uint8_t width_t  = buf->read_byte();
                 uint8_t height_t = buf->read_byte();
 
-                for (int i = 0; i < (int)width_t; ++i) {
-                    for (int j = 0; j < (int)height_t; ++j) {
-                        // TODO: make it useful
-                        buf->skip_bytes(3);
+                if (width_t > 0 && height_t > 0) {
+                    fprintf(stderr, "[Warning] Minimap not yet supported (ignored)\n");
+                    for (int i = 0; i < (int)width_t; ++i) {
+                        for (int j = 0; j < (int)height_t; ++j) {
+                            // TODO: make it useful
+                            buf->skip_bytes(3);
+                        }
                     }
                 }
                 break;

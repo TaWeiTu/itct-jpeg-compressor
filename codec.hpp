@@ -39,11 +39,8 @@ quantizer chrominance_high(uint8_t);
 quantizer lossless(uint8_t);
 
 void FDCT(std::array<std::array<int16_t, 8>, 8> &);
-void FDCT2(std::array<std::array<int16_t, 8>, 8> &);
 void IDCT(std::array<std::array<int16_t, 8>, 8> &);
-void IDCT2(std::array<std::array<int16_t, 8>, 8> &);
 void FDCT_1D(std::array<int16_t, 8> &);
-// void FDCT_1D_chen(std::array<int16_t, 8> &);
 void IDCT_1D(std::array<int16_t, 8> &);
 
 
