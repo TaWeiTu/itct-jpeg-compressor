@@ -418,7 +418,7 @@ void IDCT(std::array<std::array<int16_t, 8>, 8> &x) {
     }
 }
 
-quantizer luminance(uint8_t id) {
+quantizer luminance_low(uint8_t id) {
     return quantizer(std::array<std::array<int, 8>, 8>{{
         {16, 11, 10, 16, 24, 40, 51, 61},
         {12, 12, 14, 19, 26, 58, 60, 55},
@@ -431,7 +431,7 @@ quantizer luminance(uint8_t id) {
     }}, id);
 }
 
-quantizer chrominance(uint8_t id) {
+quantizer chrominance_low(uint8_t id) {
     return quantizer(std::array<std::array<int, 8>, 8>{{
         {17, 18, 24, 47, 99, 99, 99, 99},
         {18, 21, 26, 66, 99, 99, 99, 99},
@@ -444,7 +444,7 @@ quantizer chrominance(uint8_t id) {
     }}, id);
 }
 
-quantizer dummy(uint8_t id) {
+quantizer lossless(uint8_t id) {
     return quantizer(std::array<std::array<int, 8>, 8>{{
         {1, 1, 1, 1, 1, 1, 1, 1},
         {1, 1, 1, 1, 1, 1, 1, 1},
@@ -457,27 +457,27 @@ quantizer dummy(uint8_t id) {
     }}, id);
 }
 
-quantizer hey1(uint8_t id) {
+quantizer luminance_high(uint8_t id) {
     return quantizer(std::array<std::array<int, 8>, 8>{{
-        {3,1,1,3,4,6,7,9},
-        {1,1,1,3,4,8,8,8},
-        {1,1,3,4,6,8,10,8},
-        {1,3,3,4,7,12,11,10},
-        {3,3,5,8,10,15,15,12},
-        {4,5,8,9,11,15,16,13},
-        {7,9,11,12,15,17,17,15},
-        {10,13,13,14,16,14,15,14}
+        {3, 1, 1, 3, 4, 6, 7, 9},
+        {1, 1, 1, 3, 4, 8, 8, 8},
+        {1, 1, 3, 4, 6, 8, 10, 8},
+        {1, 3, 3, 4, 7, 12, 11, 10},
+        {3, 3, 5, 8, 10, 15, 15, 12},
+        {4, 5, 8, 9, 11, 15, 16, 13},
+        {7, 9, 11, 12, 15, 17, 17, 15},
+        {10 ,13, 13, 14, 16, 14, 15, 14}
     }}, id);
 }
-quantizer hey2(uint8_t id) {
+quantizer chrominance_high(uint8_t id) {
     return quantizer(std::array<std::array<int, 8>, 8>{{
-        {1,1,3,5,11,11,11,11},
-        {1,3,3,7,11,11,11,11},
-        {3,3,6,11,11,11,11,11},
-        {5,7,11,11,11,11,11,11},
-        {11,11,11,11,11,11,11,11},
-        {11,11,11,11,11,11,11,11},
-        {11,11,11,11,11,11,11,11},
-        {11,11,11,11,11,11,11,11}
+        {1, 1, 3, 5, 11, 11, 11, 11},
+        {1, 3, 3, 7, 11, 11, 11, 11},
+        {3, 3, 6, 11, 11, 11, 11, 11},
+        {5, 7, 11, 11, 11, 11, 11, 11},
+        {11, 11, 11, 11, 11, 11, 11, 11},
+        {11, 11, 11, 11, 11, 11, 11, 11},
+        {11, 11, 11, 11, 11, 11, 11, 11},
+        {11, 11, 11, 11, 11, 11, 11, 11}
     }}, id);
 }

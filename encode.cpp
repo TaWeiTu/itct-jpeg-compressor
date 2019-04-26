@@ -173,9 +173,10 @@ int main(int argc, const char **argv) {
     for (int i = 0; i < 4; ++i)
         huff[i] = huffman::encoder((uint8_t)i);
 
-    // quantizer qtz[2] = {luminance(0), chrominance(1)};
-    quantizer qtz[2] = {dummy(0), dummy(1)};
-    // quantizer qtz[2] = {hey1(0), hey2(1)};
+    std::array<quantizer, 2> qtz = 
+        args["quality"] == "low"  ? std::array<quantizer, 2>{luminance_low(0), chrominance_low(1)} :
+        args["quality"] == "high" ? std::array<quantizer, 2>{luminance_high(0), chrominance_high(1)} :
+                                    std::array<quantizer, 2>{lossless(0), lossless(1)};
 
 
     using block_type = std::vector<std::array<std::array<int16_t, 8>, 8>>;

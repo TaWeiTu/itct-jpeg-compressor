@@ -8,7 +8,7 @@
 
 void usage() {
     fprintf(stderr, "[Usage] ./decode [-f format=bmp] -s source [-d destination=output.bmp]\n");
-    fprintf(stderr, "[Usage] ./encode [-f format=bmp] -s source [-d destination=output.bmp] [-p subsampling=0]\n");
+    fprintf(stderr, "[Usage] ./encode [-f format=bmp] -s source [-d destination=output.bmp] [-p subsampling=0] [-r quality=low]\n");
     exit(1);
 }
 
@@ -21,13 +21,15 @@ std::map<std::string, std::string> parse(int argc, const char **argv) {
     std::map<std::string, std::string> res = {
         {"dest", "output.bmp"},
         {"format", "bmp"},
+        {"quality", "low"}
     };
 
     static std::map<std::string, int> cmd = {
         {"-f", 1},
         {"-s", 2},
         {"-d", 3},
-        {"-p", 4}
+        {"-p", 4},
+        {"-r", 5}
     };
 
     for (int i = 1; i < argc; ++i) {
@@ -83,6 +85,19 @@ std::map<std::string, std::string> parse(int argc, const char **argv) {
                 } else {
                     usage();
                 }
+                ++i;
+                break;
+            }
+            
+            case 5: {
+                if (i + 1 == argc)
+                    usage();
+
+                std::string quality(argv[i + 1]);
+                if (quality == "low" || quality == "high" || quality == "lossless")
+                    res["quality"] = quality;
+                else
+                    usage();
                 ++i;
                 break;
             }
