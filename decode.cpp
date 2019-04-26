@@ -211,8 +211,6 @@ int main(int argc, const char **argv) {
                 fprintf(stderr, "[Debug] SOS\n");
 #endif
                 // start of scan
-
-                // printf("hf = %d wf = %d\n", (int)hf, (int)wf);
                 buf->start_processing_mcu();
                 buf->skip_bytes(2);
                 uint8_t cnt = buf->read_byte();

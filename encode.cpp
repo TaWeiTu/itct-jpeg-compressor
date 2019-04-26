@@ -137,6 +137,8 @@ void write_jpeg(buffer *buf, uint8_t marker, void *ptr = nullptr) {
 
 int main(int argc, const char **argv) {
     std::map<std::string, std::string> args = parse(argc, argv);
+    if (args["dest"] == "output.bmp" || args["dest"] == "output.ppm")
+        args["dest"] = "output.jpg";
 
     image *img = nullptr;
     if (args["format"] == "bmp")

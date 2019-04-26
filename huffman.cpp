@@ -22,10 +22,8 @@ uint8_t huffman::decoder::next(buffer *buf) {
         mask = (mask << 1 | buf->read_bits<int>(1));
         ++len;
 
-        if (len == leng[mask]) {
-            // printf("huffman %d %d\n", mask, (int)len);
+        if (len == leng[mask]) 
             return code[mask];
-        }
 
         if (len > 16) {
             fprintf(stderr, "Codelength too long\n");
@@ -43,7 +41,6 @@ void huffman::encoder::add_freq(uint8_t sym, size_t f = 1) {
     freq[sym] += f;
 }
 
-// TODO: should refactor
 void huffman::encoder::encode() {
     std::vector<std::pair<size_t, uint8_t>> symb = {{1, 0}};
     for (int i = 0; i < 256; ++i) {
@@ -133,10 +130,8 @@ void huffman::encoder::encode() {
 
     int mask = 0, j = 0;
     for (int i = 1; i <= (int)limit; ++i) {
-        for (int k = 0; k < (int)cnt[i]; ++k, ++j) {
-            assert(j < (int)v.size());
+        for (int k = 0; k < (int)cnt[i]; ++k, ++j) 
             tab[i - 1].push_back(v[j]);
-        }
 
         std::sort(tab[i - 1].begin(), tab[i - 1].end());
         for (int k = 0; k < (int)tab[i - 1].size(); ++k) {
