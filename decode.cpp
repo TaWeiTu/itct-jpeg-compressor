@@ -1,12 +1,11 @@
 #include <array>
 #include <cassert>
+#include <cstring>
 #include <cstdint>
 #include <cstdio>
 #include <chrono>
-#include <ctime>
 #include <cstdlib>
 #include <cstring>
-#include <unistd.h>
 #include <vector>
 
 #include "buffer.hpp"
@@ -360,6 +359,7 @@ int main(int argc, const char **argv) {
 
     fclose(fp);
     img->write(dest);
+    delete buf;
     delete img;
 
     return 0;

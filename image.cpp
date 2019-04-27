@@ -5,15 +5,15 @@ pixel::pixel() {} pixel::pixel(uint8_t r, uint8_t g, uint8_t b): r(r), g(g), b(b
     y  = (int16_t)( 0.299    * r + 0.587    * g + 0.114    * b - 128 + 0.5);
     cb = (int16_t)(-0.168736 * r - 0.331264 * g + 0.5      * b + 0.5);
     cr = (int16_t)( 0.5      * r - 0.418688 * g - 0.081312 * b + 0.5);
-} pixel::pixel(int16_t y, int16_t cb, int16_t cr): y(y), cb(cb), cr(cr) {
-    // fprintf(stderr, "y = %d cb = %d cr = %d\n", (int)y, (int)cb, (int)cr);
+} 
+
+pixel::pixel(int16_t y, int16_t cb, int16_t cr): y(y), cb(cb), cr(cr) {
     int16_t r_ = (int16_t)(y + 1.402 * cr + 128 + 0.5);
     int16_t g_ = (int16_t)(y - 0.344136 * cb - 0.714136 * cr + 128 + 0.5);
     int16_t b_ = (int16_t)(y + 1.772 * cb + 128 + 0.5);
     r_ = std::clamp(r_, (int16_t)0, (int16_t)255);
     g_ = std::clamp(g_, (int16_t)0, (int16_t)255);
     b_ = std::clamp(b_, (int16_t)0, (int16_t)255);
-    // fprintf(stderr, "r_ = %d g_ = %d b_ = %d\n", r_, g_, b_);
     r = (uint8_t)r_;
     g = (uint8_t)g_;
     b = (uint8_t)b_;
@@ -90,7 +90,6 @@ void PPM::write(const char *filename) {
 
     for (int i = 0; i < (int)ht; ++i) {
         for (int j = 0; j < (int)wd; ++j) {
-            // fprintf(stderr, "r = %d g = %d b = %d\n", (int)pix[i][j].r, (int)pix[i][j].g, (int)pix[i][j].b);
             WRITE(pix[i][j].r);
             WRITE(pix[i][j].g);
             WRITE(pix[i][j].b);
@@ -180,7 +179,7 @@ void BMP::read(const char *filename) {
         fprintf(stderr, "[Error] Unknown Bitmap file header\n");
         exit(1);
     }
-    size_t bsize = READ() | READ() << 8 | READ() << 16 | READ() << 24;
+    READ(), READ(), READ(), READ();
     READ(), READ(), READ(), READ();
     size_t offset = READ() | READ() << 8 | READ() << 16 | READ() << 24;
     size_t bytes = 14;
@@ -200,12 +199,11 @@ void BMP::read(const char *filename) {
             bytes += 2;
             size_t bit_per_pixel = READ() | READ() << 8;
             bytes += 2;
-            if (bit_per_pixel != 1  && bit_per_pixel != 4 && bit_per_pixel != 16 &&
-                bit_per_pixel != 24 && bit_per_pixel != 32) {
-                fprintf(stderr, "[Error] the number of bits per pixel is incorrect: expect 1, 4, 16, 24, 32, received: %d\n", (int)bit_per_pixel);
+            if (bit_per_pixel != 24) {
+                fprintf(stderr, "[Error] the number of bits per pixel is incorrect: expect 24 received: %d\n", (int)bit_per_pixel);
                 exit(1);
             }
-            assert(bit_per_pixel == 24);
+
 
             size_t compress = READ() | READ() << 8 | READ() << 16 | READ() << 24;
             bytes += 4;
@@ -237,7 +235,10 @@ void BMP::read(const char *filename) {
             exit(1);
     }
 
-    assert(bytes == offset);
+    while (bytes != offset) {
+        READ();
+        ++bytes;
+    }
     pix.resize(ht, std::vector<pixel>(wd));
 
     for (int i = (int)ht - 1; i >= 0; --i) {
@@ -257,7 +258,6 @@ void BMP::read(const char *filename) {
             ++bytes;
         }
     }
-    assert(bytes == bsize);
 }
 
 void image::WRITE(uint8_t byte) {

@@ -11,7 +11,6 @@ struct buffer {
     FILE *fp;
     int8_t bpos;
     uint8_t cbyte;
-    long fpos, flen;
     bool start_mcu;
 
     inline buffer();
@@ -30,7 +29,6 @@ struct buffer {
 
     inline void start_processing_mcu();
     inline void end_processing_mcu();
-    inline bool read_mcu() const;
     inline void flush();
 
     inline void write_byte(uint8_t);
@@ -46,10 +44,7 @@ struct buffer {
 
 inline buffer::buffer(): fp(nullptr), start_mcu(false) {}
 
-inline buffer::buffer(FILE *fp): fp(fp), bpos(7), fpos(0) {
-    // fseek(fp, 0, SEEK_END);
-    // flen = ftell(fp);
-    // rewind(fp);
+inline buffer::buffer(FILE *fp): fp(fp), bpos(7) {
     cbyte = (uint8_t)fgetc(fp);
     start_mcu = false;
 }
@@ -104,10 +99,6 @@ inline void buffer::skip_bytes(uint8_t s) {
     read_bytes<uint32_t>(s);
 }
 
-inline bool buffer::read_mcu() const {
-    return fpos < flen - 2;
-}
-
 inline void buffer::flush() {
     while (bpos != 7) read_bits<uint8_t>(1);
 }
@@ -141,5 +132,6 @@ inline void buffer::write_bytes(dtype data, uint8_t s) {
 inline void buffer::write_byte(uint8_t data) {
     write_bits(data, 8);
 }
+
 
 #endif

@@ -30,8 +30,7 @@ uint8_t huffman::decoder::next(buffer *buf) {
             exit(1);
         }
     }
-    fprintf(stderr, "[Error] Huffman decoder insufficient buffer\n");
-    exit(1);
+    __builtin_unreachable();
 }
 
 
@@ -140,41 +139,4 @@ void huffman::encoder::encode() {
         }
         mask <<= 1;
     }
-
-#ifdef DEBUG
-    for (int i = 0; i < 16; ++i) {
-        for (int j = 0; j < (int)tab[i].size(); ++j) {
-            fprintf(stderr, "%d -> ", (int)tab[i][j]);
-            for (int k = (int)leng[tab[i][j]] - 1; k >= 0; --k)
-                fprintf(stderr, "%d", (code[tab[i][j]] >> k & 1));
-            fprintf(stderr, " ");
-        }
-        fprintf(stderr, "\n");
-    }
-    fprintf(stderr, "exit\n");
-    assert(decodable());
-#endif
-}
-
-bool huffman::encoder::decodable() const {
-    for (int i = 0; i < 256; ++i) {
-        if (freq[i] == 0) continue;
-        for (int j = 0; j < 256; ++j) {
-            if (freq[j] == 0) continue;
-            if (i == j) continue;
-            if (leng[i] == leng[j] && code[i] == code[j])
-                return false;
-
-            int x = i, y = j;
-            if (leng[x] > leng[y]) std::swap(x, y);
-
-            if ((code[y] >> (leng[y] - leng[x]) & ((1 << leng[x]) - 1)) == code[x]) {
-#ifdef DEBUG
-                fprintf(stderr, "x = %d y = %d\n", x, y);
-#endif
-                return false;
-            }
-        }
-    }
-    return true;
 }

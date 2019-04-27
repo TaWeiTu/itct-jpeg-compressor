@@ -1,5 +1,6 @@
 #include <chrono>
 #include <cstdio>
+#include <cstring>
 #include <map>
 #include <string>
 
@@ -269,6 +270,7 @@ int main(int argc, const char **argv) {
 
     std::chrono::high_resolution_clock::time_point stop = std::chrono::high_resolution_clock::now();
     fprintf(stderr, "[Info] Time elapsed: %d (ms)\n", (int)std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count());
+
     buf->end_processing_mcu();
     buf->finish();
     write_jpeg(buf, EOI);

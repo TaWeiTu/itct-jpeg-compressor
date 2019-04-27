@@ -2,7 +2,8 @@
 
 // TODO: write fast FDCT and IDCT
 
-std::pair<uint8_t, int16_t> RLC::decode_pixel(huffman::decoder *huf, buffer *buf) {
+std::pair<uint8_t, int16_t> RLC::decode_pair(huffman::decoder *huf, buffer *buf) {
+    // decode 
     uint8_t res = huf->next(buf);
     if (!res)
         return std::make_pair(0, 0);
@@ -10,9 +11,8 @@ std::pair<uint8_t, int16_t> RLC::decode_pixel(huffman::decoder *huf, buffer *buf
     uint8_t r = res >> 4 & 15;
     uint8_t s = res & 15;
 
-    if (s == 0) {
+    if (s == 0)
         return std::make_pair(r, 0);
-    }
 
     uint16_t offset = buf->read_bits<uint16_t>(s);
     int16_t var = (int16_t)(offset >= (1 << (int)(s - 1)) ? offset : -((int)(1 << s) - (int)offset - 1));
@@ -20,11 +20,12 @@ std::pair<uint8_t, int16_t> RLC::decode_pixel(huffman::decoder *huf, buffer *buf
 }
 
 std::array<std::array<int16_t, 8>, 8> RLC::decode_block(huffman::decoder *huf, buffer *buf) {
+    // decode a 8x8 block of run-length encoded AC signal
     std::array<std::array<int16_t, 8>, 8> res{};
 
     size_t ptr = 1;
     while (ptr < 64) {
-        std::pair<uint8_t, int16_t> RLP = decode_pixel(huf, buf);
+        std::pair<uint8_t, int16_t> RLP = decode_pair(huf, buf);
         if (RLP == std::make_pair((uint8_t)0, (int16_t)0))
             break;
 
@@ -45,6 +46,7 @@ std::array<std::array<int16_t, 8>, 8> RLC::decode_block(huffman::decoder *huf, b
 }
 
 std::vector<std::pair<uint8_t, int16_t>> RLC::encode_block(const std::array<std::array<int16_t, 8>, 8> &block) {
+    // encode a 8x8 block of run-length encoded AC signal
     std::vector<std::pair<uint8_t, int16_t>> code;
 
     for (int i = 1, j = 0; i < 64; ) {
@@ -67,6 +69,7 @@ std::vector<std::pair<uint8_t, int16_t>> RLC::encode_block(const std::array<std:
 }
 
 int16_t DPCM::decode(huffman::decoder *huf, buffer *buf) {
+    // decode a DC signal
     uint8_t res = huf->next(buf); 
 
     if (!res) 
@@ -100,6 +103,7 @@ void quantizer::dequantize(std::array<std::array<int16_t, 8>, 8> &tab) {
 }
 
 static const float cosine[8][8] = {
+    // cosine[i][j] = cos((2 * i + 1) * j * pi / 16)
     {1.00000f, 0.98079f, 0.92388f, 0.83147f, 0.70711f, 0.55557f, 0.38268f, 0.19509f},
     {1.00000f, 0.83147f, 0.38268f, -0.19509f, -0.70711f, -0.98079f, -0.92388f, -0.55557f},
     {1.00000f, 0.55557f, -0.38268f, -0.98079f, -0.70711f, 0.19509f, 0.92388f, 0.83147f},
@@ -111,6 +115,7 @@ static const float cosine[8][8] = {
 };
 
 void FDCT_1D(std::array<int16_t, 8> &x) {
+    // Chen's butterfly algorithm of 8-point 1D DCT
     static const float pi = (float)acos(-1);
     static float c1 = (float)cos(1 * pi / 16);
     static float c2 = (float)cos(2 * pi / 16);
@@ -120,7 +125,7 @@ void FDCT_1D(std::array<int16_t, 8> &x) {
     static float c6 = (float)cos(6 * pi / 16);
     static float c7 = (float)cos(7 * pi / 16);
     static int16_t x0, x1, x2, x3, x4, x5, x6, x7;
-    static float x00, x11, x22, x33;
+    static int16_t x00, x11, x22, x33;
 
     x0 = x[0] + x[7];
     x1 = x[1] + x[6];
@@ -157,6 +162,7 @@ void FDCT_1D(std::array<int16_t, 8> &x) {
 }
 
 void IDCT_1D(std::array<int16_t, 8> &x) {
+    // inverse DCT
     static const float C0 = (float)(1. / sqrt(8));
     static const float Cu = (float)(sqrt(2) / sqrt(8));
     static float y[8];
@@ -251,6 +257,7 @@ void IDCT_1D(std::array<int16_t, 8> &x) {
 }
 
 void FDCT(std::array<std::array<int16_t, 8>, 8> &x) {
+    // calculate 2D DCT by first applying 1D DCT to each row then apply 1D DCT to columns
     static std::array<std::array<int16_t, 8>, 8> y;
     for (int i = 0; i < 8; ++i) {
         FDCT_1D(x[i]);
@@ -268,6 +275,7 @@ void FDCT(std::array<std::array<int16_t, 8>, 8> &x) {
 }
 
 void IDCT(std::array<std::array<int16_t, 8>, 8> &x) {
+    // Calculate 2D IDCT by first applying 1D IDCT to each column then apply 1D DCT to rows
     static std::array<std::array<int16_t, 8>, 8> y;
     for (int i = 0; i < 8; ++i) {
         for (int j = 0; j < 8; ++j)
@@ -282,6 +290,7 @@ void IDCT(std::array<std::array<int16_t, 8>, 8> &x) {
 }
 
 quantizer luminance_low(uint8_t id) {
+    // low quality luminance quantization table
     return quantizer(std::array<std::array<int, 8>, 8>{{
         {16, 11, 10, 16, 24, 40, 51, 61},
         {12, 12, 14, 19, 26, 58, 60, 55},
@@ -295,6 +304,7 @@ quantizer luminance_low(uint8_t id) {
 }
 
 quantizer chrominance_low(uint8_t id) {
+    // low quality chrominance quantization table
     return quantizer(std::array<std::array<int, 8>, 8>{{
         {17, 18, 24, 47, 99, 99, 99, 99},
         {18, 21, 26, 66, 99, 99, 99, 99},
@@ -308,6 +318,7 @@ quantizer chrominance_low(uint8_t id) {
 }
 
 quantizer lossless(uint8_t id) {
+    // lossless quantization table
     return quantizer(std::array<std::array<int, 8>, 8>{{
         {1, 1, 1, 1, 1, 1, 1, 1},
         {1, 1, 1, 1, 1, 1, 1, 1},
@@ -321,6 +332,7 @@ quantizer lossless(uint8_t id) {
 }
 
 quantizer luminance_high(uint8_t id) {
+    // high quality luminance quantization table
     return quantizer(std::array<std::array<int, 8>, 8>{{
         {3, 1, 1, 3, 4, 6, 7, 9},
         {1, 1, 1, 3, 4, 8, 8, 8},
@@ -333,6 +345,7 @@ quantizer luminance_high(uint8_t id) {
     }}, id);
 }
 quantizer chrominance_high(uint8_t id) {
+    // high quality chrominance quantization table
     return quantizer(std::array<std::array<int, 8>, 8>{{
         {1, 1, 3, 5, 11, 11, 11, 11},
         {1, 3, 3, 7, 11, 11, 11, 11},
