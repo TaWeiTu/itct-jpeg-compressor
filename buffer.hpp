@@ -63,22 +63,13 @@ inline dtype buffer::read_bits(uint8_t s) {
         if (--bpos < 0) {
             bpos = 7;
             cbyte = (uint8_t)fgetc(fp);
-            // fprintf(stderr, "0x%02hx\n", cbyte);
-            if (start_mcu && cbyte == 0xFF) {
+            if (cbyte == 0xFF) {
                 uint8_t nxt = (uint8_t)fgetc(fp);
-                // printf("good\n");
                 if (nxt != 0x00) {
                     ungetc(nxt, fp);
-                    if (i + 1 == s)
-                        return res;
-                    // fprintf(stderr, "bad byte = 0x%02hx\n", nxt);
-                    // exit(0);
-                    start_mcu = false;
-                } else {
-                    fpos++;
+                    if (i + 1 == s) return res;
                 }
             } 
-            fpos++;
         }
     }
     return res;

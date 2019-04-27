@@ -18,8 +18,6 @@
 #include "zigzag.hpp"
 
 
-// TODO: Deal with DRI
-
 int main(int argc, const char **argv) {
     std::map<std::string, std::string> args = parse(argc, argv);
 
@@ -191,8 +189,6 @@ int main(int argc, const char **argv) {
                     fprintf(stderr, "[Error] SOI not found\n");
                     exit(1);
                 }
-                fprintf(stderr, "[Error] Not yet supported\n");
-                exit(1);
 #ifdef DEBUG
                 fprintf(stderr, "[Debug] DRI\n");
 #endif
@@ -242,6 +238,12 @@ int main(int argc, const char **argv) {
                         std::fill( Y.begin(),  Y.end(), std::vector<int16_t>(8 * hmax, EMPTY));
                         std::fill(Cb.begin(), Cb.end(), std::vector<int16_t>(8 * hmax, EMPTY));
                         std::fill(Cr.begin(), Cr.end(), std::vector<int16_t>(8 * hmax, EMPTY));
+                        if (itvl > 0 && RSTn == itvl) {
+                            memset(last, 0, sizeof(last));
+                            RSTn = 0;
+                            buf->flush();
+                            buf->skip_bytes(2);
+                        }
                         for (int c = 1; c <= 3; ++c) {
                             for (int i = 0; i < (int)fv[c]; ++i) {
                                 for (int j = 0; j < (int)fh[c]; ++j) {
@@ -264,13 +266,8 @@ int main(int argc, const char **argv) {
                                 }
                             }
                         }
-
-                        ++RSTn;
-                        if (itvl > 0 && RSTn == itvl) {
-                            memset(last, 0, sizeof(last));
-                            RSTn = 0;
-                        }
                         img->add_block(row * (vmax * 8), col * (hmax * 8), Y, Cb, Cr);
+                        ++RSTn;
                     }
                 }
 
