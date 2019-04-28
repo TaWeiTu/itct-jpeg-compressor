@@ -114,7 +114,6 @@ inline void buffer::write_bits(dtype data, uint8_t s) {
         if (--bpos < 0) {
             fwrite(&cbyte, 1, 1, fp);
             if (start_mcu && cbyte == 0xFF) {
-                // printf("good\n");
                 cbyte = 0x00;
                 fwrite(&cbyte, 1, 1, fp);
             }

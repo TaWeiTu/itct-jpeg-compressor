@@ -200,17 +200,14 @@ int main(int argc, const char **argv) {
                             huff[acid[c]].add_freq((uint8_t)(r << 4 | s), 1);
                         }
                         p++;
-                    } }
+                    } 
+                }
             }
         }
     }
 
     for (int i = 0; i < 4; ++i)
         huff[i].encode();
-
-#ifdef DEBUG
-    fprintf(stderr, "done all encoding!\n");
-#endif
 
     buffer *buf = new buffer(fopen(args["dest"].c_str(), "wb"));
 

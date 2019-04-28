@@ -1,6 +1,7 @@
+#pragma GCC target("avx")
+
 #include "codec.hpp"
 
-// TODO: write fast FDCT and IDCT
 
 std::pair<uint8_t, int16_t> RLC::decode_pair(huffman::decoder *huf, buffer *buf) {
     // decode 
@@ -102,28 +103,26 @@ void quantizer::dequantize(std::array<std::array<int16_t, 8>, 8> &tab) {
     }
 }
 
-static const float cosine[8][8] = {
-    // cosine[i][j] = cos((2 * i + 1) * j * pi / 16)
-    {1.00000f, 0.98079f, 0.92388f, 0.83147f, 0.70711f, 0.55557f, 0.38268f, 0.19509f},
-    {1.00000f, 0.83147f, 0.38268f, -0.19509f, -0.70711f, -0.98079f, -0.92388f, -0.55557f},
-    {1.00000f, 0.55557f, -0.38268f, -0.98079f, -0.70711f, 0.19509f, 0.92388f, 0.83147f},
-    {1.00000f, 0.19509f, -0.92388f, -0.55557f, 0.70711f, 0.83147f, -0.38268f, -0.98079f},
-    {1.00000f, -0.19509f, -0.92388f, 0.55557f, 0.70711f, -0.83147f, -0.38268f, 0.98079f},
-    {1.00000f, -0.55557f, -0.38268f, 0.98079f, -0.70711f, -0.19509f, 0.92388f, -0.83147f},
-    {1.00000f, -0.83147f, 0.38268f, 0.19509f, -0.70711f, 0.98079f, -0.92388f, 0.55557f},
-    {1.00000f, -0.98079f, 0.92388f, -0.83147f, 0.70711f, -0.55557f, 0.38268f, -0.19509f}
+static const int cosine[8][8] = {
+    {23170, 32138, 30273, 27245, 23170, 18204, 12539, 6392},
+    {23170, 27245, 12539, -6392, -23170, -32138, -30273, -18204},
+    {23170, 18204, -12539, -32138, -23170, 6392, 30273, 27245},
+    {23170, 6392, -30273, -18204, 23170, 27245, -12539, -32138},
+    {23170, -6392, -30273, 18204, 23170, -27245, -12539, 32138},
+    {23170, -18204, -12539, 32138, -23170, -6392, 30273, -27245},
+    {23170, -27245, 12539, 6392, -23170, 32138, -30273, 18204},
+    {23170, -32138, 30273, -27245, 23170, -18204, 12539, -6392}
 };
 
 void FDCT_1D(std::array<int16_t, 8> &x) {
     // Chen's butterfly algorithm of 8-point 1D DCT
-    static const float pi = (float)acos(-1);
-    static float c1 = (float)cos(1 * pi / 16);
-    static float c2 = (float)cos(2 * pi / 16);
-    static float c3 = (float)cos(3 * pi / 16);
-    static float c4 = (float)cos(4 * pi / 16);
-    static float c5 = (float)cos(5 * pi / 16);
-    static float c6 = (float)cos(6 * pi / 16);
-    static float c7 = (float)cos(7 * pi / 16);
+    static int c1 = 32138;
+    static int c2 = 30273;
+    static int c3 = 27245;
+    static int c4 = 23170;
+    static int c5 = 18204;
+    static int c6 = 12539;
+    static int c7 = 6392;
     static int16_t x0, x1, x2, x3, x4, x5, x6, x7;
     static int16_t x00, x11, x22, x33;
 
@@ -141,119 +140,101 @@ void FDCT_1D(std::array<int16_t, 8> &x) {
     x22 = x1 - x2;
     x33 = x0 - x3;
 
-    x[0] = (x00 + x11) * c4;
-    x[4] = (x00 - x11) * c4;
-    x[2] = (x33 * c2 + x22 * c6);
-    x[6] = (x33 * c6 - x22 * c2);
+    x[0] = ((x00 + x11) * c4) >> 16;
+    x[4] = ((x00 - x11) * c4) >> 16;
+    x[2] = (x33 * c2 + x22 * c6) >> 16;
+    x[6] = (x33 * c6 - x22 * c2) >> 16;
 
-    x[1] = (c1 * x7 + c3 * x6 + c5 * x5 + c7 * x4);
-    x[3] = (c3 * x7 - c7 * x6 - c1 * x5 - c5 * x4);
-    x[5] = (c5 * x7 - c1 * x6 + c7 * x5 + c3 * x4);
-    x[7] = (c7 * x7 - c5 * x6 + c3 * x5 - c1 * x4);
-
-    x[0] >>= 1;
-    x[1] >>= 1;
-    x[2] >>= 1;
-    x[3] >>= 1;
-    x[4] >>= 1;
-    x[5] >>= 1;
-    x[6] >>= 1;
-    x[7] >>= 1;
+    x[1] = (c1 * x7 + c3 * x6 + c5 * x5 + c7 * x4) >> 16;
+    x[3] = (c3 * x7 - c7 * x6 - c1 * x5 - c5 * x4) >> 16;
+    x[5] = (c5 * x7 - c1 * x6 + c7 * x5 + c3 * x4) >> 16;
+    x[7] = (c7 * x7 - c5 * x6 + c3 * x5 - c1 * x4) >> 16;
 }
 
 void IDCT_1D(std::array<int16_t, 8> &x) {
     // inverse DCT
-    static const float C0 = (float)(1. / sqrt(8));
-    static const float Cu = (float)(sqrt(2) / sqrt(8));
-    static float y[8];
-    y[0] = 0.0;
-    y[0] += C0 * x[0] * cosine[0][0];
-    y[0] += Cu * x[1] * cosine[0][1];
-    y[0] += Cu * x[2] * cosine[0][2];
-    y[0] += Cu * x[3] * cosine[0][3];
-    y[0] += Cu * x[4] * cosine[0][4];
-    y[0] += Cu * x[5] * cosine[0][5];
-    y[0] += Cu * x[6] * cosine[0][6];
-    y[0] += Cu * x[7] * cosine[0][7];
+    static int y[8];
+    memset(y, 0, sizeof(y));
+    y[0] += x[0] * cosine[0][0];
+    y[0] += x[1] * cosine[0][1];
+    y[0] += x[2] * cosine[0][2];
+    y[0] += x[3] * cosine[0][3];
+    y[0] += x[4] * cosine[0][4];
+    y[0] += x[5] * cosine[0][5];
+    y[0] += x[6] * cosine[0][6];
+    y[0] += x[7] * cosine[0][7];
 
-    y[1] = 0.0;
-    y[1] += C0 * x[0] * cosine[1][0];
-    y[1] += Cu * x[1] * cosine[1][1];
-    y[1] += Cu * x[2] * cosine[1][2];
-    y[1] += Cu * x[3] * cosine[1][3];
-    y[1] += Cu * x[4] * cosine[1][4];
-    y[1] += Cu * x[5] * cosine[1][5];
-    y[1] += Cu * x[6] * cosine[1][6];
-    y[1] += Cu * x[7] * cosine[1][7];
+    y[1] += x[0] * cosine[1][0];
+    y[1] += x[1] * cosine[1][1];
+    y[1] += x[2] * cosine[1][2];
+    y[1] += x[3] * cosine[1][3];
+    y[1] += x[4] * cosine[1][4];
+    y[1] += x[5] * cosine[1][5];
+    y[1] += x[6] * cosine[1][6];
+    y[1] += x[7] * cosine[1][7];
 
-    y[2] = 0.0;
-    y[2] += C0 * x[0] * cosine[2][0];
-    y[2] += Cu * x[1] * cosine[2][1];
-    y[2] += Cu * x[2] * cosine[2][2];
-    y[2] += Cu * x[3] * cosine[2][3];
-    y[2] += Cu * x[4] * cosine[2][4];
-    y[2] += Cu * x[5] * cosine[2][5];
-    y[2] += Cu * x[6] * cosine[2][6];
-    y[2] += Cu * x[7] * cosine[2][7];
+    y[2] += x[0] * cosine[2][0];
+    y[2] += x[1] * cosine[2][1];
+    y[2] += x[2] * cosine[2][2];
+    y[2] += x[3] * cosine[2][3];
+    y[2] += x[4] * cosine[2][4];
+    y[2] += x[5] * cosine[2][5];
+    y[2] += x[6] * cosine[2][6];
+    y[2] += x[7] * cosine[2][7];
     
-    y[3] = 0.0;
-    y[3] += C0 * x[0] * cosine[3][0];
-    y[3] += Cu * x[1] * cosine[3][1];
-    y[3] += Cu * x[2] * cosine[3][2];
-    y[3] += Cu * x[3] * cosine[3][3];
-    y[3] += Cu * x[4] * cosine[3][4];
-    y[3] += Cu * x[5] * cosine[3][5];
-    y[3] += Cu * x[6] * cosine[3][6];
-    y[3] += Cu * x[7] * cosine[3][7];
+    y[3] += x[0] * cosine[3][0];
+    y[3] += x[1] * cosine[3][1];
+    y[3] += x[2] * cosine[3][2];
+    y[3] += x[3] * cosine[3][3];
+    y[3] += x[4] * cosine[3][4];
+    y[3] += x[5] * cosine[3][5];
+    y[3] += x[6] * cosine[3][6];
+    y[3] += x[7] * cosine[3][7];
 
-    y[4] = 0.0;
-    y[4] += C0 * x[0] * cosine[4][0];
-    y[4] += Cu * x[1] * cosine[4][1];
-    y[4] += Cu * x[2] * cosine[4][2];
-    y[4] += Cu * x[3] * cosine[4][3];
-    y[4] += Cu * x[4] * cosine[4][4];
-    y[4] += Cu * x[5] * cosine[4][5];
-    y[4] += Cu * x[6] * cosine[4][6];
-    y[4] += Cu * x[7] * cosine[4][7];
+    y[4] += x[0] * cosine[4][0];
+    y[4] += x[1] * cosine[4][1];
+    y[4] += x[2] * cosine[4][2];
+    y[4] += x[3] * cosine[4][3];
+    y[4] += x[4] * cosine[4][4];
+    y[4] += x[5] * cosine[4][5];
+    y[4] += x[6] * cosine[4][6];
+    y[4] += x[7] * cosine[4][7];
 
-    y[5] = 0.0;
-    y[5] += C0 * x[0] * cosine[5][0];
-    y[5] += Cu * x[1] * cosine[5][1];
-    y[5] += Cu * x[2] * cosine[5][2];
-    y[5] += Cu * x[3] * cosine[5][3];
-    y[5] += Cu * x[4] * cosine[5][4];
-    y[5] += Cu * x[5] * cosine[5][5];
-    y[5] += Cu * x[6] * cosine[5][6];
-    y[5] += Cu * x[7] * cosine[5][7];
+    y[5] += x[0] * cosine[5][0];
+    y[5] += x[1] * cosine[5][1];
+    y[5] += x[2] * cosine[5][2];
+    y[5] += x[3] * cosine[5][3];
+    y[5] += x[4] * cosine[5][4];
+    y[5] += x[5] * cosine[5][5];
+    y[5] += x[6] * cosine[5][6];
+    y[5] += x[7] * cosine[5][7];
     
-    y[6] = 0.0;
-    y[6] += C0 * x[0] * cosine[6][0];
-    y[6] += Cu * x[1] * cosine[6][1];
-    y[6] += Cu * x[2] * cosine[6][2];
-    y[6] += Cu * x[3] * cosine[6][3];
-    y[6] += Cu * x[4] * cosine[6][4];
-    y[6] += Cu * x[5] * cosine[6][5];
-    y[6] += Cu * x[6] * cosine[6][6];
-    y[6] += Cu * x[7] * cosine[6][7];
+    y[6] += x[0] * cosine[6][0];
+    y[6] += x[1] * cosine[6][1];
+    y[6] += x[2] * cosine[6][2];
+    y[6] += x[3] * cosine[6][3];
+    y[6] += x[4] * cosine[6][4];
+    y[6] += x[5] * cosine[6][5];
+    y[6] += x[6] * cosine[6][6];
+    y[6] += x[7] * cosine[6][7];
 
-    y[7] = 0.0;
-    y[7] += C0 * x[0] * cosine[7][0];
-    y[7] += Cu * x[1] * cosine[7][1];
-    y[7] += Cu * x[2] * cosine[7][2];
-    y[7] += Cu * x[3] * cosine[7][3];
-    y[7] += Cu * x[4] * cosine[7][4];
-    y[7] += Cu * x[5] * cosine[7][5];
-    y[7] += Cu * x[6] * cosine[7][6];
-    y[7] += Cu * x[7] * cosine[7][7];
+    y[7] += x[0] * cosine[7][0];
+    y[7] += x[1] * cosine[7][1];
+    y[7] += x[2] * cosine[7][2];
+    y[7] += x[3] * cosine[7][3];
+    y[7] += x[4] * cosine[7][4];
+    y[7] += x[5] * cosine[7][5];
+    y[7] += x[6] * cosine[7][6];
+    y[7] += x[7] * cosine[7][7];
 
-    x[0] = (int16_t)y[0];
-    x[1] = (int16_t)y[1];
-    x[2] = (int16_t)y[2];
-    x[3] = (int16_t)y[3];
-    x[4] = (int16_t)y[4];
-    x[5] = (int16_t)y[5];
-    x[6] = (int16_t)y[6];
-    x[7] = (int16_t)y[7];
+    x[0] = (int16_t)(y[0] >> 16);
+    x[1] = (int16_t)(y[1] >> 16);
+    x[2] = (int16_t)(y[2] >> 16);
+    x[3] = (int16_t)(y[3] >> 16);
+    x[4] = (int16_t)(y[4] >> 16);
+    x[5] = (int16_t)(y[5] >> 16);
+    x[6] = (int16_t)(y[6] >> 16);
+    x[7] = (int16_t)(y[7] >> 16);
 }
 
 void FDCT(std::array<std::array<int16_t, 8>, 8> &x) {

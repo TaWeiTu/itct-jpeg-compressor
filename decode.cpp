@@ -272,7 +272,6 @@ int main(int argc, const char **argv) {
 
                 buf->end_processing_mcu();
                 buf->flush();
-
                 break;
             }
 
@@ -322,7 +321,9 @@ int main(int argc, const char **argv) {
                     fprintf(stderr, "[Error] SOI not found\n");
                     exit(1);
                 }
+#ifdef DEBUG
                 fprintf(stderr, "[Debug] COM\n");
+#endif
                 // comment
                 size_t leng = buf->read_bytes<size_t>(2);
                 for (int i = 0; i < (int)leng - 2; ++i) 

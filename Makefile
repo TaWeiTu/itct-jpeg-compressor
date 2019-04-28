@@ -1,5 +1,5 @@
 CXX = g++-8
-CFLAGS = -Wall -Wextra -O3 -std=c++17
+CFLAGS = -Wall -Wextra -O3 -std=c++17 -march=native
 DBGFLAGS = -Wall -Wextra -O3 -std=c++17 -fsanitize=undefined -fsanitize=address -DDEBUG
 
 all: decode encode
