@@ -60,7 +60,7 @@ inline dtype buffer::read_bits(uint8_t s) {
             cbyte = (uint8_t)fgetc(fp);
             if (cbyte == 0xFF) {
                 uint8_t nxt = (uint8_t)fgetc(fp);
-                if (nxt != 0x00) {
+                if (!start_mcu || nxt != 0x00) {
                     ungetc(nxt, fp);
                     if (i + 1 == s) return res;
                 }

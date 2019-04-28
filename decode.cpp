@@ -1,4 +1,5 @@
 #include <array>
+#include <algorithm>
 #include <cstring>
 #include <cstdint>
 #include <cstdio>
@@ -36,6 +37,7 @@ int main(int argc, const char **argv) {
     // height and width of the image, reset interval
     size_t ht = 0, wd = 0, itvl = 0;
     uint8_t hmax = 0, vmax = 0;
+    std::vector<int> cids;
 
     bool soi = false;
     bool eoi = false;
@@ -78,6 +80,7 @@ int main(int argc, const char **argv) {
                 uint8_t cnt = (uint8_t)buf->read_byte();
                 for (int i = 0; i < (int)cnt; ++i) {
                     uint8_t cid = buf->read_byte(); // color ID
+                    cids.push_back(cid);
                     uint8_t hor = buf->read_bits<uint8_t>(4); // horizontal subsampling rate
                     uint8_t ver = buf->read_bits<uint8_t>(4); // vertical subsampling rate
                     uint8_t nqt = buf->read_byte(); // quantization table ID
@@ -178,15 +181,16 @@ int main(int argc, const char **argv) {
                 uint8_t cnt = buf->read_byte();
 
                 for (int i = 0; i < (int)cnt; ++i) {
-                    uint8_t cs = buf->read_byte();
-                    uint8_t td = buf->read_bits<uint8_t>(4);
-                    uint8_t ta = buf->read_bits<uint8_t>(4);
+                    uint8_t cs = buf->read_byte(); // ID of color
+                    cids.push_back(cs);
+                    uint8_t td = buf->read_bits<uint8_t>(4); // DC huffman table ID
+                    uint8_t ta = buf->read_bits<uint8_t>(4); // AC huffman table ID
 
                     dcid[cs] = td;
                     acid[cs] = ta;
                 }
-                size_t hf = (ht + (vmax * 8) - 1) / (vmax * 8);
-                size_t wf = (wd + (hmax * 8) - 1) / (hmax * 8);
+                size_t hf = (ht + (vmax * 8) - 1) / (vmax * 8); // number of MCU per column
+                size_t wf = (wd + (hmax * 8) - 1) / (hmax * 8); // number of MCU per row
 
                 buf->skip_bytes(3);
 
@@ -199,18 +203,27 @@ int main(int argc, const char **argv) {
                 std::vector<std::vector<int16_t>> Cb(8 * vmax, std::vector<int16_t>(8 * hmax, EMPTY));
                 std::vector<std::vector<int16_t>> Cr(8 * vmax, std::vector<int16_t>(8 * hmax, EMPTY));
 
+                std::sort(cids.begin(), cids.end());
+                cids.resize(unique(cids.begin(), cids.end()) - cids.begin());
+                if ((int)cids.size() != 3) {
+                    fprintf(stderr, "[Error] Expect Y, Cb, Cr\n");
+                    exit(1);
+                }
+
                 for (int row = 0; row < (int)hf; ++row) {
                     for (int col = 0; col < (int)wf; ++col) {
                         std::fill( Y.begin(),  Y.end(), std::vector<int16_t>(8 * hmax, EMPTY));
                         std::fill(Cb.begin(), Cb.end(), std::vector<int16_t>(8 * hmax, EMPTY));
                         std::fill(Cr.begin(), Cr.end(), std::vector<int16_t>(8 * hmax, EMPTY));
                         if (itvl > 0 && RSTn == itvl) {
+                            // reset 
                             memset(last, 0, sizeof(last));
                             RSTn = 0;
                             buf->flush();
                             buf->skip_bytes(2);
                         }
-                        for (int c = 1; c <= 3; ++c) {
+                        for (int cid = 0; cid < 3; ++cid) {
+                            int c = cids[cid];
                             for (int i = 0; i < (int)fv[c]; ++i) {
                                 for (int j = 0; j < (int)fh[c]; ++j) {
                                     int16_t diff = DPCM::decode(&dc[dcid[c]], buf);
@@ -220,7 +233,7 @@ int main(int argc, const char **argv) {
                                     qtz[qt[c]].dequantize(block);
                                     IDCT(block);
 
-                                    std::vector<std::vector<int16_t>> *dest = c == 1 ? &Y : c == 2 ? &Cb : &Cr;
+                                    std::vector<std::vector<int16_t>> *dest = cid == 0 ? &Y : cid == 1 ? &Cb : &Cr;
                                     for (int y = 0; y < 8; ++y) {
                                         for (int x = 0; x < 8; ++x) {
                                             for (int p = 0; p < vmax / fv[c]; ++p) {

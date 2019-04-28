@@ -101,7 +101,10 @@ void quantizer::dequantize(std::array<std::array<int16_t, 8>, 8> &tab) {
     }
 }
 
+// all operations of DCT is done with integers
+
 static const int cosine[8][8] = {
+    // cosine[i][j] = cos((2 * i + 1) * j / 16) * Cj
     {23170, 32138, 30273, 27245, 23170, 18204, 12539, 6392},
     {23170, 27245, 12539, -6392, -23170, -32138, -30273, -18204},
     {23170, 18204, -12539, -32138, -23170, 6392, 30273, 27245},
