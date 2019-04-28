@@ -35,3 +35,6 @@ image_dbg.o: image.cpp image.hpp
 .PHONY: clean
 clean:
 	rm *.o
+	rm decode
+	rm encode
+
