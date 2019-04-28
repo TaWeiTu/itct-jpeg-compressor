@@ -1,9 +1,8 @@
-#pragma GCC target("sse,sse2,sse3,ssse3,sse4,sse4.2,popcnt,abm,mmx,avx,tune=native,arch=core-avx2")
-
 #include "huffman.hpp"
 
 
 huffman::decoder::decoder(const std::array<std::vector<uint8_t>, 16> &symbol) {
+    // build huffman decoder
     leng = std::array<uint8_t, 1 << 16>{};
     code = std::array<uint8_t, 1 << 16>{};
     int mask = 0;
@@ -18,6 +17,7 @@ huffman::decoder::decoder(const std::array<std::vector<uint8_t>, 16> &symbol) {
 }
 
 uint8_t huffman::decoder::next(buffer *buf) {
+    // decode next codeword
     int mask = 0;
     uint8_t len = 0;
     while (true) {

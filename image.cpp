@@ -1,15 +1,15 @@
-#pragma GCC target("sse,sse2,sse3,ssse3,sse4,sse4.2,popcnt,abm,mmx,avx,tune=native,arch=core-avx2,")
-
 #include "image.hpp"
 
 
 pixel::pixel() {} pixel::pixel(uint8_t r, uint8_t g, uint8_t b): r(r), g(g), b(b) {
+    // convert YCbCr value from RGB value
     y  = (int16_t)( 0.299    * r + 0.587    * g + 0.114    * b - 128 + 0.5);
     cb = (int16_t)(-0.168736 * r - 0.331264 * g + 0.5      * b + 0.5);
     cr = (int16_t)( 0.5      * r - 0.418688 * g - 0.081312 * b + 0.5);
 } 
 
 pixel::pixel(int16_t y, int16_t cb, int16_t cr): y(y), cb(cb), cr(cr) {
+    // convert RGB value from YCbCr value
     int16_t r_ = (int16_t)(y + 1.402 * cr + 128 + 0.5);
     int16_t g_ = (int16_t)(y - 0.344136 * cb - 0.714136 * cr + 128 + 0.5);
     int16_t b_ = (int16_t)(y + 1.772 * cb + 128 + 0.5);

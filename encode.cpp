@@ -1,5 +1,3 @@
-#pragma GCC target("sse,sse2,sse3,ssse3,sse4,sse4.2,popcnt,abm,mmx,avx,tune=native,arch=core-avx2")
-
 #include <chrono>
 #include <cstdio>
 #include <cstring>
@@ -151,7 +149,6 @@ int main(int argc, const char **argv) {
 
     img->read(args["src"].c_str());
 
-    std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
     uint8_t vmax = *std::max_element(fv.begin(), fv.end());
     uint8_t hmax = *std::max_element(fh.begin(), fh.end());
     size_t block_per_mcu = 0;
@@ -266,9 +263,6 @@ int main(int argc, const char **argv) {
             }
         }
     }
-
-    std::chrono::high_resolution_clock::time_point stop = std::chrono::high_resolution_clock::now();
-    fprintf(stderr, "[Info] Time elapsed: %d (ms)\n", (int)std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count());
 
     buf->end_processing_mcu();
     buf->finish();

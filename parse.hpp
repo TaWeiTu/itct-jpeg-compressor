@@ -17,6 +17,7 @@ std::array<uint8_t, 3> fv = {1, 1, 1};
 
 
 std::map<std::string, std::string> parse(int argc, const char **argv) {
+    // parse command line argument 
     std::map<std::string, std::string> res = {
         {"dest", "output.bmp"},
         {"format", "bmp"},

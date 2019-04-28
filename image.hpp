@@ -48,6 +48,7 @@ struct PPM: image {
     ~PPM() {
         if (ptr != buffer)
             fwrite(buffer, 1, ptr - buffer, fp);
+        fclose(fp);
     }
 
     void write(const char*);

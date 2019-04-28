@@ -1,11 +1,7 @@
-#pragma GCC target("sse,sse2,sse3,ssse3,sse4,sse4.2,popcnt,abm,mmx,avx,tune=native,arch=core-avx2")
-
 #include <array>
-#include <cassert>
 #include <cstring>
 #include <cstdint>
 #include <cstdio>
-#include <chrono>
 #include <cstdlib>
 #include <cstring>
 #include <vector>
@@ -47,8 +43,6 @@ int main(int argc, const char **argv) {
     buffer *buf = new buffer(fp);
     image *img = nullptr;
 
-    std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
-
     while (!eoi) {
         // reading marker
         uint8_t byte1 = buf->read_byte();
@@ -61,9 +55,6 @@ int main(int argc, const char **argv) {
 
         switch (byte2) {
             case SOI: {
-#ifdef DEBUG
-                fprintf(stderr, "[Debug] SOI\n");
-#endif
                 // start of image
                 soi = true;
                 break;
@@ -74,9 +65,6 @@ int main(int argc, const char **argv) {
                     fprintf(stderr, "[Error] SOI not found\n");
                     exit(1);
                 }
-#ifdef DEBUG
-                fprintf(stderr, "[Debug] SOF\n");
-#endif
                 // start of frame (baseline DCT)
                 buf->skip_bytes(3);
                 ht = buf->read_bytes<size_t>(2);
@@ -109,9 +97,6 @@ int main(int argc, const char **argv) {
                     fprintf(stderr, "[Error] SOI not found\n");
                     exit(1);
                 }
-#ifdef DEBUG
-                fprintf(stderr, "[Debug] DHT\n");
-#endif
                 // define huffman tables
                 size_t leng = buf->read_bytes<size_t>(2);
                 size_t bytes = 2;
@@ -119,8 +104,6 @@ int main(int argc, const char **argv) {
                 while (bytes < leng) {
                     uint8_t tc = buf->read_bits<uint8_t>(4); // type: 0 for DC and 1 for AC
                     uint8_t th = buf->read_bits<uint8_t>(4); // huffman table ID
-                    assert(tc < 2);
-                    assert(th < 4);
                     bytes++;
 
                     std::array<std::vector<uint8_t>, 16> symbol;
@@ -142,13 +125,6 @@ int main(int argc, const char **argv) {
                         ac[th] = huffman::decoder(symbol);
                     else    
                         dc[th] = huffman::decoder(symbol);
-
-#ifdef DEBUG
-                    if (tc)
-                        fprintf(stderr, "Building ac huffman decoder with ID %d\n", th);
-                    else
-                        fprintf(stderr, "Building dc huffman decoder with ID %d\n", th);
-#endif
                 }
                 break;
             }
@@ -158,9 +134,6 @@ int main(int argc, const char **argv) {
                     fprintf(stderr, "[Error] SOI not found\n");
                     exit(1);
                 }
-#ifdef DEBUG
-                fprintf(stderr, "[Debug] DQT\n");
-#endif
                 // define quantization tables
                 size_t leng = buf->read_bytes<size_t>(2);
                 size_t bytes = 2;
@@ -168,8 +141,6 @@ int main(int argc, const char **argv) {
                 while (bytes < leng) {
                     uint8_t pq = buf->read_bits<uint8_t>(4);
                     uint8_t tq = buf->read_bits<uint8_t>(4);
-                    assert(pq < 2);
-                    assert(tq < 4);
                     bytes++;
 
                     std::array<std::array<int, 8>, 8> qtab;
@@ -190,9 +161,6 @@ int main(int argc, const char **argv) {
                     fprintf(stderr, "[Error] SOI not found\n");
                     exit(1);
                 }
-#ifdef DEBUG
-                fprintf(stderr, "[Debug] DRI\n");
-#endif
                 // define restart interval
                 buf->skip_bytes(2);
                 itvl = buf->read_bytes<size_t>(2);
@@ -204,9 +172,6 @@ int main(int argc, const char **argv) {
                     fprintf(stderr, "[Error] SOI not found\n");
                     exit(1);
                 }
-#ifdef DEBUG
-                fprintf(stderr, "[Debug] SOS\n");
-#endif
                 // start of scan
                 buf->start_processing_mcu();
                 buf->skip_bytes(2);
@@ -282,9 +247,6 @@ int main(int argc, const char **argv) {
                     fprintf(stderr, "[Error] SOI not found\n");
                     exit(1);
                 }
-#ifdef DEBUG
-                fprintf(stderr, "[Debug] APP\n");
-#endif
                 buf->skip_bytes(2);
                 uint64_t mark = buf->read_bytes<uint64_t>(5);
                 
@@ -292,17 +254,7 @@ int main(int argc, const char **argv) {
                     fprintf(stderr, "[Error] Expect JFIF\n");
                     exit(1);
                 }
-
-#ifdef DEBUG
-                uint16_t version = buf->read_bytes<uint16_t>(2);
-                uint8_t unit = buf->read_byte();
-                uint16_t x_density = buf->read_bytes<uint16_t>(2);
-                uint16_t y_density = buf->read_bytes<uint16_t>(2);
-                fprintf(stderr, "version = %d unit = %d x_density = %d y_density = %d\n", 
-                        (int)version, (int)unit, (int)x_density, (int)y_density);
-#else
                 buf->skip_bytes(7);
-#endif
                 uint8_t width_t  = buf->read_byte();
                 uint8_t height_t = buf->read_byte();
 
@@ -323,9 +275,6 @@ int main(int argc, const char **argv) {
                     fprintf(stderr, "[Error] SOI not found\n");
                     exit(1);
                 }
-#ifdef DEBUG
-                fprintf(stderr, "[Debug] COM\n");
-#endif
                 // comment
                 size_t leng = buf->read_bytes<size_t>(2);
                 for (int i = 0; i < (int)leng - 2; ++i) 
@@ -357,8 +306,6 @@ int main(int argc, const char **argv) {
                 exit(1);
         }
     }
-    std::chrono::high_resolution_clock::time_point stop = std::chrono::high_resolution_clock::now();
-    fprintf(stderr, "[Info] Time elapsed: %d (ms)\n", (int)std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count());
 
     fclose(fp);
     img->write(dest);

@@ -1,4 +1,4 @@
-CXX = g++-8
+CXX = g++
 CFLAGS = -Wall -Wextra -O3 -std=c++17 -march=native
 DBGFLAGS = -Wall -Wextra -O3 -std=c++17 -fsanitize=undefined -fsanitize=address -DDEBUG
 
